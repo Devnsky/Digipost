@@ -17,8 +17,15 @@ import { csrfProtection, errorHandler } from "./middleware/security";
 export function createApp() {
   const app = express();
 
-  // Trust proxy for accurate req.ip (essential for Dokploy Traefik / Nginx reverse proxy)
-  app.set("trust proxy", 1);
+  // Trust proxy for accurate req.ip & https detection across multi-hop reverse proxies (NPM / Traefik / Docker)
+  const trustProxy = process.env.TRUST_PROXY
+    ? process.env.TRUST_PROXY === "true"
+      ? true
+      : isNaN(Number(process.env.TRUST_PROXY))
+        ? process.env.TRUST_PROXY
+        : Number(process.env.TRUST_PROXY)
+    : ["loopback", "linklocal", "uniquelocal"];
+  app.set("trust proxy", trustProxy);
 
   // Security headers
   app.use(
