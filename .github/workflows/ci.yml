@@ -1,0 +1,61 @@
+name: DigiPost CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    name: Typecheck, Test & Build (Node.js 24.22.2)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: digipost_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: digipost_test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NODE_ENV: test
+      TEST_DATABASE_URL: postgres://postgres:digipost_test_password@127.0.0.1:5432/digipost_test
+      DATABASE_URL: postgres://postgres:digipost_test_password@127.0.0.1:5432/digipost_test
+      COOKIE_SECRET: digipost-ci-test-cookie-secret-key-32chars
+      SESSION_COOKIE_NAME: digipost_session
+      MAX_FILE_SIZE_MB: 25
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Runtime 24.22.2
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.22.2"
+          cache: "npm"
+
+      - name: Install Monorepo Dependencies
+        run: npm ci
+
+      - name: Static Type Checking
+        run: npm run typecheck
+
+      - name: Execute Database Migrations
+        run: npm run migrate
+
+      - name: Run Test Suite
+        run: npm test
+
+      - name: Build Production Bundles (Frontend & API)
+        run: npm run build
+
