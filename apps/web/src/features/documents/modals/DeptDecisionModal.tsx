@@ -33,10 +33,10 @@ export const DeptDecisionModal: React.FC<DeptDecisionModalProps> = ({
             <strong className="block font-bold">
               PERHATIAN: Aturan Agregasi Opsi A!
             </strong>
-            Penolakan oleh satu departemen akan{" "}
-            <strong>menghentikan dan menolak secara permanen</strong> seluruh
-            proses pengajuan bagi seluruh departemen. Status akhir dokumen akan
-            menjadi <strong>REJECTED</strong>.
+            Penolakan oleh departemen Anda akan dicatat. Sesuai aturan{" "}
+            <strong>Agregasi Opsi A</strong>, dokumen tetap berstatus pending
+            hingga seluruh departemen memutuskan atau jika keputusan diubah
+            kembali sebelum status final.
           </div>
         </div>
 

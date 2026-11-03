@@ -44,13 +44,15 @@ export async function listMyDocuments(
   }
 
   if (options.dateFrom) {
-    conditions.push(`d.created_at >= $${paramIndex}`);
+    conditions.push(`d.created_at >= $${paramIndex}::date`);
     params.push(options.dateFrom);
     paramIndex++;
   }
 
   if (options.dateTo) {
-    conditions.push(`d.created_at <= $${paramIndex}`);
+    conditions.push(
+      `d.created_at < ($${paramIndex}::date + INTERVAL '1 day')`,
+    );
     params.push(options.dateTo);
     paramIndex++;
   }
@@ -259,7 +261,7 @@ export async function listDepartmentDocuments(
   // Filter: date from
   if (options.dateFrom) {
     conditions.push(
-      `DATE(COALESCE(d.submitted_at, d.created_at)) >= $${paramIndex}`,
+      `COALESCE(d.submitted_at, d.created_at) >= $${paramIndex}::date`,
     );
     params.push(options.dateFrom);
     paramIndex++;
@@ -268,7 +270,7 @@ export async function listDepartmentDocuments(
   // Filter: date to
   if (options.dateTo) {
     conditions.push(
-      `DATE(COALESCE(d.submitted_at, d.created_at)) <= $${paramIndex}`,
+      `COALESCE(d.submitted_at, d.created_at) < ($${paramIndex}::date + INTERVAL '1 day')`,
     );
     params.push(options.dateTo);
     paramIndex++;
@@ -379,15 +381,20 @@ export async function getDocumentStats(user: AuthUser) {
 
   const deptCountsQuery = `
     SELECT
-      COUNT(DISTINCT d.id) as total,
-      COUNT(DISTINCT d.id) FILTER (WHERE d.status = 'pending') as pending,
-      COUNT(DISTINCT d.id) FILTER (WHERE d.status = 'approved') as approved,
-      COUNT(DISTINCT d.id) FILTER (WHERE d.status = 'rejected') as rejected,
-      COUNT(DISTINCT d.id) FILTER (WHERE d.status = 'canceled') as canceled
+      COUNT(*) as total,
+      COUNT(*) FILTER (WHERE d.status = 'pending') as pending,
+      COUNT(*) FILTER (WHERE d.status = 'approved') as approved,
+      COUNT(*) FILTER (WHERE d.status = 'rejected') as rejected,
+      COUNT(*) FILTER (WHERE d.status = 'canceled') as canceled
     FROM documents d
-    LEFT JOIN document_departments dd ON dd.document_id = d.id AND dd.passed_checker = TRUE
-    LEFT JOIN departments dep ON dep.id = dd.department_id AND dep.manager_id = $1
-    WHERE (d.checker_id = $1 OR dep.manager_id = $1)
+    WHERE (
+      d.checker_id = $1
+      OR EXISTS (
+        SELECT 1 FROM document_departments dd
+        JOIN departments dep ON dep.id = dd.department_id
+        WHERE dd.document_id = d.id AND dep.manager_id = $1 AND dd.passed_checker = TRUE
+      )
+    )
       AND d.status IN ('pending', 'approved', 'rejected', 'canceled')
       AND d.deleted_at IS NULL
   `;

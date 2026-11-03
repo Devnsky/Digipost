@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { KeyRound, CheckCircle, AlertCircle } from "lucide-react";
 import { api } from "../../../lib/api";
+import { AuthContext } from "../../../lib/auth-context";
 
 interface ChangePasswordCardProps {
   username?: string;
@@ -9,6 +10,7 @@ interface ChangePasswordCardProps {
 export const ChangePasswordCard: React.FC<ChangePasswordCardProps> = ({
   username,
 }) => {
+  const auth = useContext(AuthContext);
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -51,11 +53,22 @@ export const ChangePasswordCard: React.FC<ChangePasswordCardProps> = ({
 
     setLoading(true);
     try {
-      await api.auth.changePassword(oldPassword, newPassword);
-      setSuccess("Password Anda berhasil diperbarui!");
+      if (auth?.changePassword) {
+        await auth.changePassword(oldPassword, newPassword);
+      } else {
+        await api.auth.changePassword(oldPassword, newPassword);
+      }
+      setSuccess(
+        "Password Anda berhasil diperbarui! Mengalihkan ke halaman masuk...",
+      );
       setOldPassword("");
       setNewPassword("");
       setConfirmPassword("");
+      setTimeout(() => {
+        if (typeof window !== "undefined") {
+          window.location.href = "/";
+        }
+      }, 1500);
     } catch (err: any) {
       setError(err.message || "Gagal mengubah password");
     } finally {

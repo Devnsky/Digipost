@@ -3,6 +3,7 @@ import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth-context";
 import { useToast } from "../../lib/feedback-context";
 import { Department } from "../../lib/types";
+import { formatFileSize } from "../../lib/formatters";
 import {
   Upload,
   AlertCircle,
@@ -66,19 +67,13 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({
         setError("Hanya format PDF dan Word (.docx) yang diperbolehkan.");
         return;
       }
-      if (selected.size > 10 * 1024 * 1024) {
-        setError("Ukuran berkas melebihi batas maksimal 10 MB.");
+      if (selected.size > 25 * 1024 * 1024) {
+        setError("Ukuran berkas melebihi batas maksimal 25 MB.");
         return;
       }
       setError("");
       setFile(selected);
     }
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + " B";
-    else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
-    else return (bytes / 1048576).toFixed(1) + " MB";
   };
 
   const handleSaveDraft = async (e: React.FormEvent) => {

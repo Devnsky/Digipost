@@ -115,9 +115,16 @@ export async function addDepartmentPending(
 ) {
   return await withTransaction(async (client) => {
     const docCheck = await client.query(
-      `SELECT d.checker_id, d.status, d.version, app.department_id as applicant_department_id
+      `SELECT
+         d.checker_id,
+         d.status,
+         d.version,
+         app.department_id as applicant_department_id,
+         app.manager_id as applicant_manager_id,
+         adep.manager_id as applicant_dept_manager_id
        FROM documents d
        JOIN users app ON app.id = d.applicant_id
+       LEFT JOIN departments adep ON adep.id = app.department_id
        WHERE d.id = $1 AND d.deleted_at IS NULL`,
       [documentId],
     );
@@ -128,14 +135,18 @@ export async function addDepartmentPending(
 
     const doc = docCheck.rows[0];
 
-    // Authorization: Hanya Manager / Checker dari departemen pemilik dokumen yang berhak menambah departemen tujuan
-    const isOwnerDeptManager =
-      (user.role === "dept_manager" || Number(doc.checker_id) === user.id) &&
-      Number(user.department_id) === Number(doc.applicant_department_id);
+    // Authorization: HANYA Checker atau Manajer dari Assistant yang mengajukan dokumen
+    const isApplicantDeptManager =
+      (doc.applicant_dept_manager_id !== null &&
+        Number(doc.applicant_dept_manager_id) === user.id) ||
+      (doc.applicant_manager_id !== null &&
+        Number(doc.applicant_manager_id) === user.id);
+    const isAssignedChecker =
+      doc.checker_id !== null && Number(doc.checker_id) === user.id;
 
-    if (!isOwnerDeptManager) {
+    if (!isApplicantDeptManager && !isAssignedChecker) {
       throw new ForbiddenError(
-        "Akses ditolak. Hanya Manajer dari departemen pemilik dokumen yang dapat menambahkan departemen tujuan.",
+        "Akses ditolak. Hanya Checker atau Manajer dari pembuat dokumen yang berwenang menambahkan departemen tujuan saat status pending.",
       );
     }
 

@@ -80,9 +80,14 @@ export const DocumentDiscussionCard: React.FC<DocumentDiscussionCardProps> = ({
                         Permintaan Revisi
                       </span>
                     )}
-                    {isComment && (
+                    {isComment && resp.author_role === "checker" && (
                       <span className="px-1.5 py-0.5 rounded bg-[#f0effe] text-[#555ad5] text-[10px] font-semibold">
                         Catatan Checker
+                      </span>
+                    )}
+                    {isComment && resp.author_role === "dept_manager" && (
+                      <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-semibold">
+                        Tanggapan Departemen
                       </span>
                     )}
                   </div>

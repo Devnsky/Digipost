@@ -108,7 +108,7 @@ router.post(
 // POST /api/workflow/:id/departments/add-pending
 router.post(
   "/:id/departments/add-pending",
-  requireRoles("dept_manager"),
+  requireRoles("dept_manager", "checker"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const docId = parseInt(req.params.id as string, 10);

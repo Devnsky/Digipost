@@ -29,11 +29,13 @@ router.get(
         `attachment; filename="${encodeURIComponent(version.file_name)}"`,
       );
       const stream = fs.createReadStream(version.file_path);
+      res.on("close", () => stream.destroy());
       stream.on("error", (streamErr) => {
         if (!res.headersSent) {
           next(streamErr);
         } else {
           console.error("[Download Stream Error]:", streamErr);
+          res.destroy();
         }
       });
       stream.pipe(res);
@@ -79,11 +81,13 @@ router.get(
           res.end(Buffer.from(stampedBytes));
         } else {
           const stream = fs.createReadStream(version.file_path);
+          res.on("close", () => stream.destroy());
           stream.on("error", (streamErr) => {
             if (!res.headersSent) {
               next(streamErr);
             } else {
               console.error("[Preview Stream Error]:", streamErr);
+              res.destroy();
             }
           });
           stream.pipe(res);

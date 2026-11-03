@@ -42,6 +42,11 @@ export const pool = new Pool({
   ssl: getSslConfig(),
 });
 
+// Prevent idle client drop or backend network partition from crashing the Node.js process
+pool.on("error", (err) => {
+  console.error("[PostgreSQL Pool Error]: Unexpected idle client error", err);
+});
+
 export async function query<T extends QueryResultRow = any>(
   text: string,
   params?: any[],

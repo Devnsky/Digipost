@@ -82,7 +82,7 @@ export const DocumentInfoCard: React.FC<DocumentInfoCardProps> = ({
             Versi Berkas Terkini
           </span>
           <span className="text-xs font-bold text-[#212634] block mt-1">
-            Versi {doc.version}
+            Versi {currentVersionObj ? currentVersionObj.version_no : doc.version}
           </span>
           <span className="text-[11px] text-[#717684] block mt-0.5">
             {currentVersionObj?.file_name || "Tidak ada berkas"}

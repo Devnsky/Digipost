@@ -149,7 +149,7 @@ describe("Document Mutation & Workflow Core Contracts Unit Tests", () => {
       expect(res.message).toContain("Keputusan departemen berhasil disimpan");
     });
 
-    it("addDepartmentPending menolak jika bukan manager dari departemen pemilik dokumen", async () => {
+    it("addDepartmentPending menolak jika bukan checker atau manager dari pembuat dokumen", async () => {
       const otherManager: any = {
         id: 99,
         role: "dept_manager",
@@ -162,7 +162,9 @@ describe("Document Mutation & Workflow Core Contracts Unit Tests", () => {
             checker_id: 20,
             status: "pending",
             version: 1,
-            applicant_department_id: 1, // Milik departemen 1
+            applicant_department_id: 1,
+            applicant_dept_manager_id: 50,
+            applicant_manager_id: 50,
           },
         ],
       });
@@ -170,6 +172,36 @@ describe("Document Mutation & Workflow Core Contracts Unit Tests", () => {
       await expect(
         addDepartmentPending(100, 3, otherManager),
       ).rejects.toThrow(ForbiddenError);
+    });
+
+    it("addDepartmentPending mengizinkan jika pemanggil adalah checker dokumen", async () => {
+      const checkerUser: any = {
+        id: 20,
+        role: "checker",
+        department_id: 1,
+      };
+      mockClient.query
+        .mockResolvedValueOnce({
+          rowCount: 1,
+          rows: [
+            {
+              checker_id: 20,
+              status: "pending",
+              version: 1,
+              applicant_department_id: 1,
+              applicant_dept_manager_id: 50,
+              applicant_manager_id: 50,
+            },
+          ],
+        })
+        .mockResolvedValueOnce({ rowCount: 1, rows: [] });
+
+      const res = await addDepartmentPending(100, 3, checkerUser);
+      expect(res.message).toContain("berhasil ditambahkan");
+      expect(mockClient.query).toHaveBeenCalledWith(
+        `SELECT sp_add_department($1, $2, $3)`,
+        [100, 3, 20],
+      );
     });
   });
 });

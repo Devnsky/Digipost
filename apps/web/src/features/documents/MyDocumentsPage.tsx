@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { api } from "../../lib/api";
 import { DocumentListItem } from "../../lib/types";
+import { formatDate } from "../../lib/formatters";
 import { StatusBadge } from "../../components/StatusBadge";
 import {
   Search,
@@ -69,15 +70,6 @@ export const MyDocumentsPage: React.FC<MyDocumentsPageProps> = ({
     { label: "Rejected", value: "rejected" },
     { label: "Canceled", value: "canceled" },
   ];
-
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleDateString("id-ID", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  };
 
   const calculateProgress = (doc: DocumentListItem) => {
     const depts = doc.departments || [];

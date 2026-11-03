@@ -7,6 +7,11 @@ import {
   Department,
   DocumentVersion,
 } from "../../lib/types";
+import {
+  formatDate,
+  formatDateTime,
+  formatFileSize,
+} from "../../lib/formatters";
 import { StatusBadge } from "../../components/StatusBadge";
 import { Modal } from "../../components/Modal";
 import { DocumentPreviewModal } from "./modals/DocumentPreviewModal";
@@ -142,38 +147,6 @@ export const DocumentDetailPage: React.FC<DocumentDetailPageProps> = ({
 
   const currentVersionObj =
     versions && versions.length > 0 ? versions[0] : null;
-
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleDateString("id-ID", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
-  const formatDateTime = (dateStr?: string) => {
-    if (!dateStr) return "-";
-    return (
-      new Date(dateStr).toLocaleDateString("id-ID", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      }) +
-      ", " +
-      new Date(dateStr).toLocaleTimeString("id-ID", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }) +
-      " WIB"
-    );
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + " B";
-    else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
-    else return (bytes / 1048576).toFixed(1) + " MB";
-  };
 
   // --- Handlers ---
   const handleEditMetadata = async (e: React.FormEvent) => {
@@ -422,6 +395,15 @@ export const DocumentDetailPage: React.FC<DocumentDetailPageProps> = ({
   const handleSendResponse = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!responseBody.trim()) return;
+    if (
+      !allowedActions.can_checker_decide &&
+      !allowedActions.managed_department_id
+    ) {
+      toast.error(
+        "Anda tidak memiliki kewenangan untuk mengirim komentar pada tahap ini.",
+      );
+      return;
+    }
     setActionLoading(true);
     try {
       if (allowedActions.can_checker_decide) {

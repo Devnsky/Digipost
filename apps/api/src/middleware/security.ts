@@ -115,7 +115,11 @@ export function csrfProtection(
     if (origin) {
       try {
         const originUrl = new URL(origin);
-        const requestHost = req.get("host");
+        const forwardedHost = req
+          .get("x-forwarded-host")
+          ?.split(",")[0]
+          .trim();
+        const requestHost = forwardedHost || req.get("host");
 
         // Allow same host (direct domain access or reverse proxy e.g. Dokploy/Traefik)
         if (requestHost && originUrl.host === requestHost) {

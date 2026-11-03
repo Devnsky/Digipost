@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { api } from "../../lib/api";
 import { DocumentListItem, DashboardStats, Department } from "../../lib/types";
+import { formatNumber, formatDate } from "../../lib/formatters";
 import { StatusBadge } from "../../components/StatusBadge";
 import {
   Search,
@@ -118,20 +119,6 @@ export const DepartmentQueuePage: React.FC<DepartmentQueuePageProps> = ({
     { label: "Ditolak", value: "rejected" },
     { label: "Dibatalkan", value: "canceled" },
   ];
-
-  const formatNumber = (num: number | string | undefined) => {
-    const val = Number(num) || 0;
-    return val < 10 ? `0${val}` : `${val}`;
-  };
-
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleDateString("id-ID", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  };
 
   const mgr = stats?.managerStats || {
     draft: 0,

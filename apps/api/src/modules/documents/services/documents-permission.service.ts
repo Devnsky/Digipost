@@ -66,10 +66,11 @@ export function computeAllowedActions(
     (isDeptManager || isChecker) &&
     Number(user.department_id) === Number(doc.applicant_department_id);
 
-  const canAddDept = doc.status === "pending" && isOwnerDeptManager;
+  // Sesuai aturan: Hanya Checker atau Manajer dari Assistant yang mengajukan yang boleh menambah departemen saat pending
+  const canAddDept =
+    doc.status === "pending" && (isChecker || isOwnerDeptManager);
   const canRespond =
-    (doc.status === "pending" &&
-      (isApplicant || isDeptManager || isOwnerDeptManager)) ||
+    (doc.status === "pending" && !!userManagedDept) ||
     (doc.status === "draft" && doc.review_stage === "checker" && isChecker);
   const canPrint = ["pending", "approved", "rejected", "canceled"].includes(
     doc.status,

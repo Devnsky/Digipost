@@ -96,7 +96,10 @@ export async function getStampedPdfBuffer(
     let stampText = "MENUNGGU PERSETUJUAN";
     let stampColor = rgb(0.85, 0.65, 0.1); // yellow / amber
 
-    if (docStatus === "approved") {
+    if (docStatus === "draft") {
+      stampText = "DRAFT - BELUM DIAJUKAN";
+      stampColor = rgb(0.4, 0.4, 0.4); // gray
+    } else if (docStatus === "approved") {
       stampText = "APPROVED / DISETUJUI";
       stampColor = rgb(0.1, 0.65, 0.2); // green
     } else if (docStatus === "rejected") {

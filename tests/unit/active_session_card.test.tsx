@@ -17,7 +17,7 @@ describe("ActiveSessionCard Component", () => {
 
     expect(html).toContain("Sesi aktif");
     expect(html).toContain("Sesi Aktif");
-    expect(html).toContain("Cookie HTTP-only (JWT)");
+    expect(html).toContain("Cookie HTTP-only (Session Token)");
     expect(html).toContain("Auto-logout saat inaktif");
     expect(html).toContain("Keluar dari sesi ini");
     expect(html).toContain("perangkat komputer bersama");

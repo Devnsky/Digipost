@@ -167,11 +167,14 @@ export async function markAsRead(notificationId: number, user: AuthUser) {
 }
 
 export async function markAllAsRead(user: AuthUser) {
-  await query(
+  const result = await query(
     `UPDATE notifications
      SET is_read = TRUE, read_at = now()
      WHERE recipient_id = $1 AND is_read = FALSE`,
     [user.id],
   );
-  return { message: "Semua notifikasi ditandai sudah dibaca" };
+  return {
+    message: "Semua notifikasi ditandai sudah dibaca",
+    updatedCount: result.rowCount || 0,
+  };
 }

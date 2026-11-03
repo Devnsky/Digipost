@@ -46,7 +46,7 @@ export const ActiveSessionCard: React.FC = () => {
         <div className="flex items-center justify-between p-3 bg-[#fbfbfc] rounded-xl border border-[#e9ebf0]">
           <span className="text-[#717684]">Metode Otentikasi:</span>
           <span className="font-semibold text-[#212634]">
-            Cookie HTTP-only (JWT)
+            Cookie HTTP-only (Session Token)
           </span>
         </div>
 

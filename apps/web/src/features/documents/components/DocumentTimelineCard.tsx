@@ -32,7 +32,7 @@ export const DocumentTimelineCard: React.FC<DocumentTimelineCardProps> = ({
                 {lg.action}
               </div>
               <div className="text-[11px] text-[#717684] mt-0.5">
-                Oleh <strong className="text-[#212634]">{lg.actor_name}</strong>
+                Oleh <strong className="text-[#212634]">{lg.actor_name || "Sistem"}</strong>
               </div>
               {lg.note && (
                 <div className="mt-1 p-2 bg-[#fbfbfc] border border-[#e9ebf0] rounded-lg text-[11px] text-[#212634] italic">

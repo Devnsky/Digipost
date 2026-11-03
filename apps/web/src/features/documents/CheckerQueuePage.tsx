@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { api } from "../../lib/api";
 import { DocumentListItem, DashboardStats } from "../../lib/types";
+import {
+  formatNumber,
+  formatDate,
+  formatDateTime,
+} from "../../lib/formatters";
 import { StatusBadge } from "../../components/StatusBadge";
 import {
   Search,
@@ -65,37 +70,6 @@ export const CheckerQueuePage: React.FC<CheckerQueuePageProps> = ({
     e.preventDefault();
     setPage(1);
     fetchQueue();
-  };
-
-  const formatNumber = (num: number | undefined) => {
-    const val = Number(num) || 0;
-    return val < 10 ? `0${val}` : `${val}`;
-  };
-
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleDateString("id-ID", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
-  const formatDateTime = (dateStr?: string) => {
-    if (!dateStr) return "-";
-    return (
-      new Date(dateStr).toLocaleDateString("id-ID", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      }) +
-      ", " +
-      new Date(dateStr).toLocaleTimeString("id-ID", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }) +
-      " WIB"
-    );
   };
 
   const pendingCount = total;

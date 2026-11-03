@@ -122,6 +122,34 @@ describe("Document Allowed Actions Permission Matrix Unit Tests", () => {
     expect(actions.can_dept_decide).toBe(false); // Departemen 1 bukan salah satu tujuan di sampleDepts
   });
 
+  it("Checker yang ditugaskan berhak menambah departemen tujuan saat pending", () => {
+    const checkerUser = { id: 20, role: "checker", department_id: 1 };
+    const pendingDoc = { ...baseDoc, status: "pending", review_stage: null };
+    const actions = computeAllowedActions({
+      user: checkerUser,
+      doc: pendingDoc,
+      intendedDepartments: sampleDepts,
+      hasVersions: true,
+    });
+
+    expect(actions.can_add_dept).toBe(true);
+  });
+
+  it("Dept Manager dari departemen tujuan yang lolos checker TIDAK berhak menambah departemen saat pending (Hanya Checker atau Manager pemohon)", () => {
+    const targetDeptManager = { id: 30, role: "dept_manager", department_id: 2 };
+    const pendingDoc = { ...baseDoc, status: "pending", review_stage: null };
+    const actions = computeAllowedActions({
+      user: targetDeptManager,
+      doc: pendingDoc,
+      intendedDepartments: sampleDepts,
+      hasVersions: true,
+    });
+
+    expect(actions.can_add_dept).toBe(false);
+    expect(actions.can_dept_decide).toBe(true);
+    expect(actions.can_respond).toBe(true);
+  });
+
   it("Dokumen berstatus approved mengunci seluruh aksi mutasi", () => {
     const user = { id: 10, role: "assistant", department_id: 1 };
     const approvedDoc = { ...baseDoc, status: "approved", review_stage: null };

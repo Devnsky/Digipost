@@ -108,14 +108,15 @@ export async function createDocument(
         ],
       );
 
-      // 3. Add initial departments in a single batch query
-      if (departmentIds.length > 0) {
-        const valuePlaceholders = departmentIds
-          .map((_, idx) => `($1, $${idx + 2}, $${departmentIds.length + 2})`)
+      // 3. Add initial departments in a single batch query (deduplicated & guarded)
+      const uniqueDeptIds = [...new Set(departmentIds)];
+      if (uniqueDeptIds.length > 0) {
+        const valuePlaceholders = uniqueDeptIds
+          .map((_, idx) => `($1, $${idx + 2}, $${uniqueDeptIds.length + 2})`)
           .join(", ");
         await client.query(
-          `INSERT INTO document_departments (document_id, department_id, added_by) VALUES ${valuePlaceholders}`,
-          [docId, ...departmentIds, user.id],
+          `INSERT INTO document_departments (document_id, department_id, added_by) VALUES ${valuePlaceholders} ON CONFLICT DO NOTHING`,
+          [docId, ...uniqueDeptIds, user.id],
         );
       }
 
@@ -422,6 +423,14 @@ export async function uploadNewVersion(
         UPDATE documents SET version = version + 1, updated_at = now() WHERE id = $1;
       `,
         [documentId],
+      );
+
+      await client.query(
+        `
+        INSERT INTO approval_logs (document_id, actor_id, action, from_status, to_status, note)
+        VALUES ($1, $2, 'upload_version', 'draft', 'draft', $3);
+      `,
+        [documentId, user.id, `Mengunggah berkas revisi versi ${nextVersionNo}`],
       );
 
       return { message: `Versi ${nextVersionNo} berhasil diunggah` };
