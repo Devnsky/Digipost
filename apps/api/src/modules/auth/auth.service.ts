@@ -2,7 +2,6 @@ import crypto from "crypto";
 import argon2 from "argon2";
 import { query } from "../../db";
 import { config } from "../../config";
-import nodemailer from "nodemailer";
 import {
   UnauthorizedError,
   NotFoundError,
@@ -62,7 +61,12 @@ export async function login(
   const user = userResult.rows[0];
   let isPasswordCorrect = false;
 
-  if (user) {
+  const isAccountUnavailable =
+    Boolean(user) &&
+    (!user.is_active ||
+      Boolean(user.locked_until && new Date(user.locked_until) > new Date()));
+
+  if (user && !isAccountUnavailable) {
     try {
       isPasswordCorrect = await argon2.verify(
         user.password_hash,
@@ -71,7 +75,7 @@ export async function login(
     } catch {
       isPasswordCorrect = false;
     }
-  } else {
+  } else if (!user) {
     // Perform dummy verify to ensure uniform response time (prevent user enumeration)
     try {
       await argon2.verify(DUMMY_HASH, passwordInput);
@@ -170,99 +174,4 @@ export async function changePassword(
   });
 
   await query(`SELECT sp_change_password($1, $2)`, [userId, newHash]);
-}
-
-export async function forgotPassword(email: string) {
-  const userResult = await query(
-    `SELECT id, username, email FROM users WHERE lower(email) = lower($1) AND is_active = TRUE`,
-    [email.trim()],
-  );
-
-  // If user not found, return silently to prevent email enumeration
-  if (userResult.rowCount === 0) {
-    return;
-  }
-
-  const user = userResult.rows[0];
-  const rawToken = crypto.randomBytes(32).toString("hex");
-  const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
-
-  await query(`SELECT sp_create_reset_token($1, $2, '30 minutes'::interval)`, [
-    user.id,
-    tokenHash,
-  ]);
-
-  const resetUrl = `${config.frontendUrl}/reset-password?token=${rawToken}`;
-
-  // Log for local development
-  if (config.env === "development" || config.env === "test") {
-    console.log(`[RESET PASSWORD EMAIL] To: ${user.email} | URL: ${resetUrl}`);
-  }
-
-  // Attempt sending email if SMTP configured
-  if (config.smtp.user && config.smtp.host !== "localhost") {
-    try {
-      const transporter = nodemailer.createTransport({
-        host: config.smtp.host,
-        port: config.smtp.port,
-        secure: config.smtp.port === 465,
-        auth: {
-          user: config.smtp.user,
-          pass: config.smtp.pass,
-        },
-      });
-
-      await transporter.sendMail({
-        from: config.smtp.from,
-        to: user.email,
-        subject: "Permintaan Reset Password - DigiPost",
-        html: `
-          <p>Halo ${user.username},</p>
-          <p>Kami menerima permintaan untuk mereset password akun Anda di DigiPost.</p>
-          <p>Klik tautan berikut untuk membuat password baru (berlaku 30 menit):</p>
-          <p><a href="${resetUrl}">${resetUrl}</a></p>
-          <p>Jika Anda tidak merasa meminta reset password, abaikan email ini.</p>
-        `,
-      });
-    } catch (err) {
-      console.error("[SMTP Error sending reset email]:", err);
-    }
-  }
-}
-
-export async function resetPassword(rawToken: string, newPass: string) {
-  const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
-
-  // Verify token exists and valid to get username for policy check
-  const tokenRecord = await query(
-    `SELECT t.*, u.username FROM password_reset_tokens t
-     JOIN users u ON u.id = t.user_id
-     WHERE t.token_hash = $1 AND t.used_at IS NULL AND t.expires_at > now()`,
-    [tokenHash],
-  );
-
-  if (tokenRecord.rowCount === 0) {
-    throw new BadRequestError(
-      "Token reset tidak valid atau sudah kedaluwarsa.",
-      "INVALID_RESET_TOKEN",
-    );
-  }
-
-  const username = tokenRecord.rows[0].username;
-  const policy = validatePasswordPolicy(newPass, username);
-  if (!policy.valid) {
-    throw new BadRequestError(
-      policy.message || "Password tidak memenuhi kebijakan.",
-      "PASSWORD_POLICY_VIOLATION",
-    );
-  }
-
-  const newHash = await argon2.hash(newPass, {
-    type: argon2.argon2id,
-    memoryCost: 65536,
-    timeCost: 3,
-    parallelism: 4,
-  });
-
-  await query(`SELECT sp_reset_password($1, $2)`, [tokenHash, newHash]);
 }

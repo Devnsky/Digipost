@@ -94,6 +94,7 @@ describe("DocumentActionsCard Component", () => {
         onOpenCancelModal={noop}
         onOpenCheckerApproveModal={noop}
         onOpenRequestRevisionModal={noop}
+        onOpenCheckerRejectModal={noop}
         onDeptApprove={noop}
         onOpenDeptRejectModal={noop}
         onDeleteDraft={noop}
@@ -102,6 +103,7 @@ describe("DocumentActionsCard Component", () => {
 
     expect(html).toContain("Setujui &amp; teruskan");
     expect(html).toContain("Kembalikan untuk revisi");
+    expect(html).toContain("Tolak pengajuan");
     expect(html).not.toContain("Ajukan ke Checker");
   });
 

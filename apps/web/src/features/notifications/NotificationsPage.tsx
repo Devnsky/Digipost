@@ -61,14 +61,24 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
     try {
       if (!notif.is_read) {
         await api.notifications.markRead(notif.id);
-      }
-      if (notif.document_number) {
-        onSelectDocument(notif.document_number);
+        setNotifications((prev) =>
+          prev.map((item) =>
+            item.id === notif.id ? { ...item, is_read: true } : item,
+          ),
+        );
+        setUnreadCount((prev) => Math.max(0, prev - 1));
       }
     } catch {
-      if (notif.document_number) {
-        onSelectDocument(notif.document_number);
-      }
+      // Abaikan kegagalan jaringan saat menandai baca
+    }
+
+    if (notif.can_open === false || notif.event_type === "draft_deleted") {
+      toast.info("Draf dokumen ini telah dihapus oleh pemohon.");
+      return;
+    }
+
+    if (notif.document_number) {
+      onSelectDocument(notif.document_number);
     }
   };
 

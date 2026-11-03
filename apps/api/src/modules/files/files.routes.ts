@@ -73,12 +73,31 @@ router.get(
           stamped ||
           ["approved", "rejected", "canceled"].includes(doc.status)
         ) {
-          const stampedBytes = await filesService.getStampedPdfBuffer(
+          const stampTimestamp =
+            doc.decided_at || doc.submitted_at || doc.created_at;
+          const stampedResult = await filesService.getOrGenerateStampedPdf(
             version.file_path,
             doc.status,
             doc.document_number,
+            stampTimestamp,
           );
-          res.end(Buffer.from(stampedBytes));
+
+          if (stampedResult.path) {
+            const stream = fs.createReadStream(stampedResult.path);
+            res.on("close", () => stream.destroy());
+            stream.on("error", (streamErr) => {
+              if (!res.headersSent) {
+                next(streamErr);
+              } else {
+                console.error("[Preview Stream Error]:", streamErr);
+                res.destroy();
+              }
+            });
+            stream.pipe(res);
+            return;
+          }
+
+          res.end(stampedResult.buffer);
         } else {
           const stream = fs.createReadStream(version.file_path);
           res.on("close", () => stream.destroy());

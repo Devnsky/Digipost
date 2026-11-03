@@ -47,13 +47,17 @@ CREATE OR REPLACE FUNCTION fn_validate_session_by_token(
 ) LANGUAGE plpgsql AS $$
 DECLARE s user_sessions%ROWTYPE;
 BEGIN
-  SELECT * INTO s FROM user_sessions WHERE refresh_token_hash = p_token_hash FOR UPDATE;
+  -- 1. Read session without row-level write lock to allow non-blocking concurrent reads
+  SELECT * INTO s FROM user_sessions WHERE refresh_token_hash = p_token_hash;
   IF NOT FOUND OR s.revoked_at IS NOT NULL OR s.expires_at <= now()
      OR s.last_seen_at + p_idle <= now() THEN
     RETURN;
   END IF;
 
-  UPDATE user_sessions SET last_seen_at = now() WHERE id = s.id;
+  -- 2. Throttled update: only refresh last_seen_at if at least 1 minute has elapsed
+  IF s.last_seen_at + interval '1 minute' <= now() THEN
+    UPDATE user_sessions SET last_seen_at = now() WHERE id = s.id;
+  END IF;
 
   RETURN QUERY
   SELECT

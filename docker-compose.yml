@@ -23,19 +23,6 @@ services:
       - digipost-network
 
   # =========================================================
-  # Layanan Email Lokal (Pengujian Reset Password via Web UI)
-  # =========================================================
-  mailpit:
-    image: axllent/mailpit:latest
-    container_name: digipost-mailpit
-    restart: unless-stopped
-    ports:
-      - "${MAILPIT_PORT:-8025}:8025" # Web UI untuk membaca email reset password
-      - "1025:1025"                 # Port SMTP lokal
-    networks:
-      - digipost-network
-
-  # =========================================================
   # Backend API: Node.js / Express / TypeScript
   # =========================================================
   api:
@@ -57,9 +44,6 @@ services:
       UPLOAD_DIR: /app/uploads/documents
       MAX_FILE_SIZE_MB: 25
       SEED_ON_START: ${SEED_ON_START:-false}
-      SMTP_HOST: ${SMTP_HOST:-mailpit}
-      SMTP_PORT: ${SMTP_PORT:-1025}
-      EMAIL_FROM: ${EMAIL_FROM:-noreply@digipost.local}
     volumes:
       - uploads_data:/app/uploads/documents
     ports:

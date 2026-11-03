@@ -86,6 +86,7 @@ export async function getStampedPdfBuffer(
   filePath: string,
   docStatus: string,
   docNumber: string,
+  stampTimestamp?: Date | string | null,
 ) {
   const existingPdfBytes = await fs.promises.readFile(filePath);
   try {
@@ -110,7 +111,9 @@ export async function getStampedPdfBuffer(
       stampColor = rgb(0.5, 0.5, 0.5); // gray
     }
 
-    const stampDate = new Date().toLocaleDateString("id-ID", {
+    const dateObj = stampTimestamp ? new Date(stampTimestamp) : new Date();
+    const validDate = isNaN(dateObj.getTime()) ? new Date() : dateObj;
+    const stampDate = validDate.toLocaleDateString("id-ID", {
       day: "numeric",
       month: "short",
       year: "numeric",
@@ -155,6 +158,51 @@ export async function getStampedPdfBuffer(
     // Return original if stamping fails
     return existingPdfBytes;
   }
+}
+
+export function getStampedCacheFilePath(
+  filePath: string,
+  docStatus: string,
+): string {
+  const dir = path.dirname(filePath);
+  const ext = path.extname(filePath);
+  const base = path.basename(filePath, ext);
+  return path.join(dir, `${base}.stamped.${docStatus}${ext}`);
+}
+
+export async function getOrGenerateStampedPdf(
+  filePath: string,
+  docStatus: string,
+  docNumber: string,
+  stampTimestamp?: Date | string | null,
+): Promise<{ path?: string; buffer?: Buffer }> {
+  const isTerminal = ["approved", "rejected", "canceled"].includes(docStatus);
+  const cachePath = getStampedCacheFilePath(filePath, docStatus);
+
+  if (isTerminal && fs.existsSync(cachePath)) {
+    return { path: cachePath };
+  }
+
+  const stampedBytes = await getStampedPdfBuffer(
+    filePath,
+    docStatus,
+    docNumber,
+    stampTimestamp,
+  );
+  const buffer = Buffer.from(stampedBytes);
+
+  if (isTerminal) {
+    fs.promises.writeFile(cachePath, buffer).catch((err) => {
+      if (config.env !== "test") {
+        console.warn(
+          "[PDF Cache Warning]: Gagal menyimpan cache berkas stempel:",
+          err,
+        );
+      }
+    });
+  }
+
+  return { buffer };
 }
 
 export async function convertDocxToHtml(filePath: string): Promise<string> {

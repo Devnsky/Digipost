@@ -57,15 +57,17 @@ export function authRateLimiter(maxAttempts = 15, windowMinutes = 15) {
     }
 
     const ip = req.ip || req.socket.remoteAddress || "unknown";
+    const routePrefix = `${req.baseUrl || ""}${req.path || ""}`;
+    const key = routePrefix ? `${routePrefix}:${ip}` : ip;
     const now = Date.now();
     const windowMs = windowMinutes * 60 * 1000;
 
-    const record = rateLimitMap.get(ip);
+    const record = rateLimitMap.get(key);
     if (!record || now > record.resetAt) {
       if (rateLimitMap.size >= MAX_RATE_LIMIT_ENTRIES) {
         pruneRateLimitMap(now, MAX_RATE_LIMIT_ENTRIES);
       }
-      rateLimitMap.set(ip, { count: 1, resetAt: now + windowMs });
+      rateLimitMap.set(key, { count: 1, resetAt: now + windowMs });
       return next();
     }
 
@@ -192,6 +194,39 @@ export function errorHandler(
     return;
   }
 
+  // Handle Multer upload errors
+  if (err.name === "MulterError") {
+    if (err.code === "LIMIT_FILE_SIZE") {
+      res.status(413).json({
+        error: "Ukuran berkas melebihi batas maksimal yang diizinkan.",
+        code: "FILE_TOO_LARGE",
+      });
+      return;
+    }
+    res.status(400).json({
+      error: err.message || "Gagal mengunggah berkas.",
+      code: "INVALID_FILE_UPLOAD",
+    });
+    return;
+  }
+
+  // Handle PostgreSQL data format / syntax exceptions
+  if (err.code === "22P02") {
+    res.status(400).json({
+      error: "Format parameter masukan tidak valid.",
+      code: "INVALID_INPUT_SYNTAX",
+    });
+    return;
+  }
+
+  if (err.code === "22007" || err.code === "22008") {
+    res.status(400).json({
+      error: "Format tanggal tidak valid.",
+      code: "INVALID_DATETIME_FORMAT",
+    });
+    return;
+  }
+
   // Handle PostgreSQL custom exceptions (RAISE EXCEPTION in PL/pgSQL)
   if (err.code === "P0001") {
     // If it's a concurrency conflict or terminal state conflict
@@ -228,6 +263,16 @@ export function errorHandler(
     res.status(409).json({
       error: "Data duplikat telah ada pada sistem.",
       code: "DUPLICATE_ENTRY",
+    });
+    return;
+  }
+
+  // Handle foreign key constraint violations
+  if (err.code === "23503") {
+    res.status(400).json({
+      error:
+        "Data referensi yang ditentukan tidak ditemukan atau tidak valid.",
+      code: "FOREIGN_KEY_VIOLATION",
     });
     return;
   }

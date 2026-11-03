@@ -79,6 +79,9 @@ export const DocumentDetailPage: React.FC<DocumentDetailPageProps> = ({
   const [isRequestRevisionModalOpen, setIsRequestRevisionModalOpen] =
     useState(false);
   const [revisionNote, setRevisionNote] = useState("");
+  const [isCheckerRejectModalOpen, setIsCheckerRejectModalOpen] =
+    useState(false);
+  const [checkerRejectNote, setCheckerRejectNote] = useState("");
 
   // Cancel modal
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -301,6 +304,26 @@ export const DocumentDetailPage: React.FC<DocumentDetailPageProps> = ({
       toast.success("Permintaan revisi berhasil dikirim ke pemohon.");
     } catch (err: any) {
       toast.error(err.message || "Gagal mengirim permintaan revisi");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCheckerReject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setActionLoading(true);
+    try {
+      await api.workflow.checkerDecide(doc.id, {
+        action: "reject",
+        note: checkerRejectNote.trim() || undefined,
+        expected_version: doc.version,
+      });
+      setIsCheckerRejectModalOpen(false);
+      setCheckerRejectNote("");
+      await fetchDetail();
+      toast.success("Dokumen berhasil ditolak (final).");
+    } catch (err: any) {
+      toast.error(err.message || "Gagal memproses penolakan dokumen");
     } finally {
       setActionLoading(false);
     }
@@ -587,6 +610,7 @@ export const DocumentDetailPage: React.FC<DocumentDetailPageProps> = ({
             onOpenRequestRevisionModal={() =>
               setIsRequestRevisionModalOpen(true)
             }
+            onOpenCheckerRejectModal={() => setIsCheckerRejectModalOpen(true)}
             onDeptApprove={handleDeptApprove}
             onOpenDeptRejectModal={(deptId) => {
               setRejectDeptId(deptId);
@@ -653,6 +677,50 @@ export const DocumentDetailPage: React.FC<DocumentDetailPageProps> = ({
         departmentNames={departments.map((d) => d.name)}
         actionLoading={actionLoading}
       />
+
+      {/* 5b. Modal Tolak Pengajuan Dokumen oleh Checker */}
+      <Modal
+        isOpen={isCheckerRejectModalOpen}
+        onClose={() => setIsCheckerRejectModalOpen(false)}
+        title="Tolak Pengajuan Dokumen"
+        maxWidth="md"
+      >
+        <form onSubmit={handleCheckerReject} className="space-y-4">
+          <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 leading-relaxed">
+            <strong>Peringatan:</strong> Penolakan dokumen oleh Checker bersifat{" "}
+            <strong>final</strong>. Dokumen akan berstatus ditolak dan alur
+            persetujuan dihentikan.
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[#212634] mb-1.5">
+              Alasan Penolakan (Opsional)
+            </label>
+            <textarea
+              rows={3}
+              value={checkerRejectNote}
+              onChange={(e) => setCheckerRejectNote(e.target.value)}
+              placeholder="Tuliskan catatan alasan penolakan untuk pemohon..."
+              className="w-full px-3.5 py-2.5 bg-[#fbfbfc] border border-[#e9ebf0] rounded-xl text-xs text-[#212634] focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 resize-none"
+            />
+          </div>
+          <div className="flex justify-end gap-2.5 pt-2 border-t border-[#e9ebf0]">
+            <button
+              type="button"
+              onClick={() => setIsCheckerRejectModalOpen(false)}
+              className="px-4 py-2 rounded-xl border border-[#e9ebf0] bg-white text-[#212634] text-xs font-semibold hover:bg-slate-50 cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={actionLoading}
+              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-xs transition cursor-pointer disabled:opacity-50"
+            >
+              {actionLoading ? "Memproses..." : "Tolak Dokumen"}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* 6. Modal Konfirmasi Tolak Persetujuan Dept (Screenshot 31) */}
       <DeptDecisionModal

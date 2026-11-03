@@ -10,4 +10,8 @@ export interface NotificationItem {
   is_read: boolean;
   read_at?: string;
   created_at: string;
+  document_status?: string;
+  document_deleted_at?: string | null;
+  applicant_name?: string;
+  can_open?: boolean;
 }

@@ -78,11 +78,4 @@ export const config = {
   sessionCookieName: process.env.SESSION_COOKIE_NAME || "digipost_session",
   sessionIdleMinutes: parseInt(process.env.SESSION_IDLE_MINUTES || "30", 10),
   sessionMaxHours: parseInt(process.env.SESSION_MAX_HOURS || "8", 10),
-  smtp: {
-    host: process.env.SMTP_HOST || "localhost",
-    port: parseInt(process.env.SMTP_PORT || "1025", 10),
-    user: process.env.SMTP_USER || "",
-    pass: process.env.SMTP_PASS || "",
-    from: process.env.EMAIL_FROM || "noreply@digipost.local",
-  },
 };

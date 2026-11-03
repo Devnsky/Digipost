@@ -53,6 +53,48 @@ if (!fs.existsSync(tempUploadDir)) {
   fs.mkdirSync(tempUploadDir, { recursive: true });
 }
 
+export async function cleanOrphanedTempFiles(
+  maxAgeMs = 2 * 60 * 60 * 1000,
+): Promise<number> {
+  if (!fs.existsSync(tempUploadDir)) return 0;
+  let deletedCount = 0;
+  try {
+    const files = await fs.promises.readdir(tempUploadDir);
+    const now = Date.now();
+    for (const file of files) {
+      const fullPath = path.join(tempUploadDir, file);
+      try {
+        const stats = await fs.promises.stat(fullPath);
+        if (stats.isFile() && now - stats.mtimeMs > maxAgeMs) {
+          await fs.promises.unlink(fullPath);
+          deletedCount++;
+        }
+      } catch {
+        // ignore individual file stat/unlink error
+      }
+    }
+  } catch {
+    // ignore directory read error
+  }
+  return deletedCount;
+}
+
+// Periodic cleanup of orphaned temporary files every 6 hours
+if (typeof setInterval !== "undefined") {
+  const tempCleanupTimer = setInterval(
+    () => {
+      cleanOrphanedTempFiles().catch(() => {});
+    },
+    6 * 60 * 60 * 1000,
+  );
+  if (tempCleanupTimer.unref) {
+    tempCleanupTimer.unref(); // Don't hold Node process open in tests
+  }
+}
+if (config.env !== "test") {
+  cleanOrphanedTempFiles().catch(() => {});
+}
+
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
     cb(null, tempUploadDir);
@@ -239,6 +281,13 @@ router.post(
         document: created,
       });
     } catch (err) {
+      if (req.file?.path && fs.existsSync(req.file.path)) {
+        try {
+          await fs.promises.unlink(req.file.path);
+        } catch {
+          // ignore
+        }
+      }
       next(err);
     }
   },
@@ -310,6 +359,13 @@ router.post(
       );
       res.json(result);
     } catch (err) {
+      if (req.file?.path && fs.existsSync(req.file.path)) {
+        try {
+          await fs.promises.unlink(req.file.path);
+        } catch {
+          // ignore
+        }
+      }
       next(err);
     }
   },

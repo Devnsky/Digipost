@@ -6,6 +6,7 @@ import {
   CheckCircle,
   AlertCircle,
   X,
+  XCircle,
   RefreshCw,
   Trash2,
   Lock,
@@ -29,6 +30,7 @@ interface DocumentActionsCardProps {
   onOpenCancelModal: () => void;
   onOpenCheckerApproveModal: () => void;
   onOpenRequestRevisionModal: () => void;
+  onOpenCheckerRejectModal?: () => void;
   onDeptApprove: (deptId: number) => void;
   onOpenDeptRejectModal: (deptId: number) => void;
   onDeleteDraft: () => void;
@@ -47,6 +49,7 @@ export const DocumentActionsCard: React.FC<DocumentActionsCardProps> = ({
   onOpenCancelModal,
   onOpenCheckerApproveModal,
   onOpenRequestRevisionModal,
+  onOpenCheckerRejectModal,
   onDeptApprove,
   onOpenDeptRejectModal,
   onDeleteDraft,
@@ -116,6 +119,17 @@ export const DocumentActionsCard: React.FC<DocumentActionsCardProps> = ({
               <AlertCircle className="w-3.5 h-3.5" />
               <span>Kembalikan untuk revisi</span>
             </button>
+
+            {onOpenCheckerRejectModal && (
+              <button
+                onClick={onOpenCheckerRejectModal}
+                disabled={actionLoading}
+                className="w-full py-2.5 px-4 rounded-xl border border-rose-200 bg-rose-50/50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                <span>Tolak pengajuan</span>
+              </button>
+            )}
           </>
         )}
 

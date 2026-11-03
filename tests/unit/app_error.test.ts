@@ -127,4 +127,26 @@ describe("AppError Hierarchy & ErrorHandler Unit Tests", () => {
       code: "NOT_FOUND",
     });
   });
+
+  it("errorHandler middleware merespons 400 saat PostgreSQL error 23503 (foreign_key_violation)", () => {
+    const pgErr = new Error(
+      "insert or update on table violates foreign key constraint",
+    );
+    (pgErr as any).code = "23503";
+
+    const jsonMock = vi.fn();
+    const statusMock = vi.fn().mockReturnValue({ json: jsonMock });
+
+    const req = {} as any;
+    const res = { status: statusMock } as any;
+    const next = vi.fn();
+
+    errorHandler(pgErr, req, res, next);
+
+    expect(statusMock).toHaveBeenCalledWith(400);
+    expect(jsonMock).toHaveBeenCalledWith({
+      error: "Data referensi yang ditentukan tidak ditemukan atau tidak valid.",
+      code: "FOREIGN_KEY_VIOLATION",
+    });
+  });
 });

@@ -74,7 +74,7 @@ export function createApp() {
         if (!origin || allowedOrigins.has(origin)) {
           return callback(null, true);
         }
-        return callback(new Error("Akses ditolak oleh kebijakan CORS."));
+        return callback(null, false);
       },
       credentials: true,
     }),

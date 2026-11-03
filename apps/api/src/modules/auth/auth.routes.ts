@@ -17,15 +17,6 @@ const changePasswordSchema = z.object({
   new_password: z.string().min(10, "Password baru minimal 10 karakter"),
 });
 
-const forgotPasswordSchema = z.object({
-  email: z.string().email("Format email tidak valid"),
-});
-
-const resetPasswordSchema = z.object({
-  token: z.string().min(1, "Token reset wajib disertakan"),
-  new_password: z.string().min(10, "Password baru minimal 10 karakter"),
-});
-
 // POST /api/auth/login
 router.post(
   "/login",
@@ -116,44 +107,6 @@ router.post(
       res.json({
         message:
           "Password berhasil diubah. Seluruh sesi telah dicabut, silakan login kembali.",
-      });
-    } catch (err) {
-      next(err);
-    }
-  },
-);
-
-// POST /api/auth/forgot-password
-router.post(
-  "/forgot-password",
-  authRateLimiter(5, 15),
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { email } = forgotPasswordSchema.parse(req.body);
-      await authService.forgotPassword(email);
-
-      res.json({
-        message:
-          "Jika email terdaftar, instruksi reset password telah dikirimkan ke email Anda.",
-      });
-    } catch (err) {
-      next(err);
-    }
-  },
-);
-
-// POST /api/auth/reset-password
-router.post(
-  "/reset-password",
-  authRateLimiter(10, 15),
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { token, new_password } = resetPasswordSchema.parse(req.body);
-      await authService.resetPassword(token, new_password);
-
-      res.json({
-        message:
-          "Password berhasil direset. Silakan login kembali dengan password baru.",
       });
     } catch (err) {
       next(err);
