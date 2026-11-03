@@ -6,4 +6,4 @@ uploads/
 .DS_Store
 .agents/
 .vscode/
-docs/
+/docs/
