@@ -149,7 +149,9 @@ export async function getStampedPdfBuffer(
 
     return await pdfDoc.save();
   } catch (err) {
-    console.warn("[PDF Stamping Warning]:", err);
+    if (config.env !== "test") {
+      console.warn("[PDF Stamping Warning]:", err);
+    }
     // Return original if stamping fails
     return existingPdfBytes;
   }

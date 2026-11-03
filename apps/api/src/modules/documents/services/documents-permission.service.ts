@@ -66,9 +66,10 @@ export function computeAllowedActions(
     (isDeptManager || isChecker) &&
     Number(user.department_id) === Number(doc.applicant_department_id);
 
-  // Sesuai aturan: Hanya Checker atau Manajer dari Assistant yang mengajukan yang boleh menambah departemen saat pending
+  // Diizinkan saat pending: Target Dept Manager, Checker, atau Manager Pemohon
   const canAddDept =
-    doc.status === "pending" && (isChecker || isOwnerDeptManager);
+    doc.status === "pending" &&
+    (isChecker || isOwnerDeptManager || !!userManagedDept);
   const canRespond =
     (doc.status === "pending" && !!userManagedDept) ||
     (doc.status === "draft" && doc.review_stage === "checker" && isChecker);

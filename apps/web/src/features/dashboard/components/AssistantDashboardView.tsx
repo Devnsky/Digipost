@@ -32,7 +32,7 @@ export interface AssistantDashboardViewProps {
   error: string;
   handleSearchSubmit: (e: React.FormEvent) => void;
   onNavigate: (path: string) => void;
-  onSelectDocument: (id: number) => void;
+  onSelectDocument: (documentNumber: string) => void;
 }
 
 import {
@@ -106,7 +106,7 @@ export const AssistantDashboardView: React.FC<AssistantDashboardViewProps> = ({
             <span className="text-xs font-medium text-[#717684]">
               Total dokumen
             </span>
-            <div className="w-7 h-7 rounded-lg bg-[#f0effe] text-[#555ad5] flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
               <FileText className="w-3.5 h-3.5" />
             </div>
           </div>
@@ -126,7 +126,7 @@ export const AssistantDashboardView: React.FC<AssistantDashboardViewProps> = ({
             <span className="text-xs font-medium text-[#717684]">
               Perlu tindakan
             </span>
-            <div className="w-7 h-7 rounded-lg bg-[#fef3c7] text-[#b45309] flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center">
               <FileEdit className="w-3.5 h-3.5" />
             </div>
           </div>
@@ -144,7 +144,7 @@ export const AssistantDashboardView: React.FC<AssistantDashboardViewProps> = ({
         <div className="bg-white p-5 rounded-2xl border border-[#e9ebf0] shadow-xs flex flex-col justify-between">
           <div className="flex items-start justify-between">
             <span className="text-xs font-medium text-[#717684]">Pending</span>
-            <div className="w-7 h-7 rounded-lg bg-[#eff6ff] text-[#2563eb] flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-[#f0effe] text-[#555ad5] flex items-center justify-center">
               <Clock className="w-3.5 h-3.5" />
             </div>
           </div>
@@ -162,7 +162,7 @@ export const AssistantDashboardView: React.FC<AssistantDashboardViewProps> = ({
         <div className="bg-white p-5 rounded-2xl border border-[#e9ebf0] shadow-xs flex flex-col justify-between">
           <div className="flex items-start justify-between">
             <span className="text-xs font-medium text-[#717684]">Approved</span>
-            <div className="w-7 h-7 rounded-lg bg-[#ecfdf5] text-[#059669] flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
               <CheckSquare className="w-3.5 h-3.5" />
             </div>
           </div>
@@ -271,7 +271,7 @@ export const AssistantDashboardView: React.FC<AssistantDashboardViewProps> = ({
                     >
                       <td className="py-3 px-6">
                         <div
-                          onClick={() => onSelectDocument(doc.id)}
+                          onClick={() => onSelectDocument(doc.document_number)}
                           className="font-semibold text-[#212634] group-hover:text-[#555ad5] transition cursor-pointer line-clamp-1"
                         >
                           {doc.title}
@@ -292,7 +292,7 @@ export const AssistantDashboardView: React.FC<AssistantDashboardViewProps> = ({
                       </td>
                       <td className="py-3 px-6 text-right whitespace-nowrap">
                         <button
-                          onClick={() => onSelectDocument(doc.id)}
+                          onClick={() => onSelectDocument(doc.document_number)}
                           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#f0effe] hover:bg-[#e4e2fd] text-[#555ad5] text-xs font-semibold transition cursor-pointer"
                         >
                           <span>Lihat</span>
@@ -335,7 +335,10 @@ export const AssistantDashboardView: React.FC<AssistantDashboardViewProps> = ({
                 {recentLogs.map((item) => (
                   <div
                     key={item.id}
-                    onClick={() => onSelectDocument(item.document_id)}
+                    onClick={() =>
+                      item.document_number &&
+                      onSelectDocument(item.document_number)
+                    }
                     className="flex items-start gap-2.5 text-xs cursor-pointer group"
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-[#555ad5] shrink-0 mt-1.5" />

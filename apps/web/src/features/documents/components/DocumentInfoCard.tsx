@@ -37,62 +37,62 @@ export const DocumentInfoCard: React.FC<DocumentInfoCardProps> = ({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-        <div className="p-3.5 bg-[#fbfbfc] rounded-xl border border-[#e9ebf0]">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-[#8a90a2] block">
-            Pemohon (Applicant)
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6 pt-2 pb-1 text-xs">
+        <div>
+          <span className="text-[11px] font-semibold text-[#717684] block">
+            Pemohon
           </span>
-          <span className="text-xs font-bold text-[#212634] block mt-1">
+          <span className="text-sm font-bold text-[#212634] block mt-0.5">
             {doc.applicant_name}
           </span>
-          <span className="text-[11px] text-[#717684] block mt-0.5">
+          <span className="text-xs text-[#717684] block mt-0.5">
             {doc.applicant_department_name} &middot;{" "}
             {doc.applicant_employee_no || "-"}
           </span>
         </div>
 
-        <div className="p-3.5 bg-[#fbfbfc] rounded-xl border border-[#e9ebf0]">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-[#8a90a2] block">
-            Checker (Atasan Langsung)
+        <div>
+          <span className="text-[11px] font-semibold text-[#717684] block">
+            Pemeriksa (Checker)
           </span>
-          <span className="text-xs font-bold text-[#212634] block mt-1">
+          <span className="text-sm font-bold text-[#212634] block mt-0.5">
             {doc.checker_name || "Belum Ditentukan"}
           </span>
-          <span className="text-[11px] text-[#717684] block mt-0.5">
+          <span className="text-xs text-[#717684] block mt-0.5">
             {doc.checker_department_name || "-"}
           </span>
         </div>
 
-        <div className="p-3.5 bg-[#fbfbfc] rounded-xl border border-[#e9ebf0]">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-[#8a90a2] block">
+        <div>
+          <span className="text-[11px] font-semibold text-[#717684] block">
             Tanggal Pengajuan
           </span>
-          <span className="text-xs font-bold text-[#212634] block mt-1">
+          <span className="text-sm font-bold text-[#212634] block mt-0.5">
             {formatDateTime(doc.created_at)}
           </span>
-          <span className="text-[11px] text-[#717684] block mt-0.5">
+          <span className="text-xs text-[#717684] block mt-0.5">
             {doc.submitted_at
               ? `Disubmit: ${formatDateTime(doc.submitted_at)}`
               : "Draft"}
           </span>
         </div>
 
-        <div className="p-3.5 bg-[#fbfbfc] rounded-xl border border-[#e9ebf0]">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-[#8a90a2] block">
+        <div>
+          <span className="text-[11px] font-semibold text-[#717684] block">
             Versi Berkas Terkini
           </span>
-          <span className="text-xs font-bold text-[#212634] block mt-1">
+          <span className="text-sm font-bold text-[#212634] block mt-0.5">
             Versi {currentVersionObj ? currentVersionObj.version_no : doc.version}
           </span>
-          <span className="text-[11px] text-[#717684] block mt-0.5">
+          <span className="text-xs text-[#717684] block mt-0.5">
             {currentVersionObj?.file_name || "Tidak ada berkas"}
           </span>
         </div>
       </div>
 
       {doc.description && (
-        <div className="p-4 bg-[#fbfbfc] rounded-xl border border-[#e9ebf0]">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-[#8a90a2] block mb-1">
+        <div className="pt-3 border-t border-[#f0f2f5]">
+          <span className="text-[11px] font-semibold text-[#717684] block mb-1">
             Deskripsi / Urgensi Dokumen
           </span>
           <p className="text-xs text-[#212634] leading-relaxed whitespace-pre-wrap">

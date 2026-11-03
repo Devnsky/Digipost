@@ -121,12 +121,17 @@ export async function addDepartmentPending(
          d.version,
          app.department_id as applicant_department_id,
          app.manager_id as applicant_manager_id,
-         adep.manager_id as applicant_dept_manager_id
+         adep.manager_id as applicant_dept_manager_id,
+         EXISTS (
+           SELECT 1 FROM document_departments dd
+           JOIN departments dep ON dep.id = dd.department_id
+           WHERE dd.document_id = d.id AND dep.manager_id = $2
+         ) as is_target_dept_manager
        FROM documents d
        JOIN users app ON app.id = d.applicant_id
        LEFT JOIN departments adep ON adep.id = app.department_id
        WHERE d.id = $1 AND d.deleted_at IS NULL`,
-      [documentId],
+      [documentId, user.id],
     );
 
     if (docCheck.rowCount === 0) {
@@ -135,7 +140,7 @@ export async function addDepartmentPending(
 
     const doc = docCheck.rows[0];
 
-    // Authorization: HANYA Checker atau Manajer dari Assistant yang mengajukan dokumen
+    // Authorization: Target Dept Manager, Applicant's Dept Manager, atau Assigned Checker
     const isApplicantDeptManager =
       (doc.applicant_dept_manager_id !== null &&
         Number(doc.applicant_dept_manager_id) === user.id) ||
@@ -143,10 +148,11 @@ export async function addDepartmentPending(
         Number(doc.applicant_manager_id) === user.id);
     const isAssignedChecker =
       doc.checker_id !== null && Number(doc.checker_id) === user.id;
+    const isTargetDeptManager = Boolean(doc.is_target_dept_manager);
 
-    if (!isApplicantDeptManager && !isAssignedChecker) {
+    if (!isTargetDeptManager && !isApplicantDeptManager && !isAssignedChecker) {
       throw new ForbiddenError(
-        "Akses ditolak. Hanya Checker atau Manajer dari pembuat dokumen yang berwenang menambahkan departemen tujuan saat status pending.",
+        "Akses ditolak. Anda tidak berwenang menambahkan departemen tujuan pada dokumen ini.",
       );
     }
 

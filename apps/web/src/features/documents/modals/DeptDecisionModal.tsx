@@ -31,12 +31,9 @@ export const DeptDecisionModal: React.FC<DeptDecisionModalProps> = ({
           <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
           <div className="text-xs text-rose-800 leading-relaxed">
             <strong className="block font-bold">
-              PERHATIAN: Aturan Agregasi Opsi A!
+              Konsekuensi Penolakan Dokumen
             </strong>
-            Penolakan oleh departemen Anda akan dicatat. Sesuai aturan{" "}
-            <strong>Agregasi Opsi A</strong>, dokumen tetap berstatus pending
-            hingga seluruh departemen memutuskan atau jika keputusan diubah
-            kembali sebelum status final.
+            Penolakan dari departemen Anda akan dicatat dan menghentikan pengesahan dokumen. Pastikan alasan penolakan dijelaskan secara jelas pada catatan di bawah agar dapat ditindaklanjuti.
           </div>
         </div>
 

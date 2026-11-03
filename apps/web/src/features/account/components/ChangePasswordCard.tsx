@@ -1,5 +1,5 @@
 import React, { useState, useContext } from "react";
-import { KeyRound, CheckCircle, AlertCircle } from "lucide-react";
+import { CheckCircle, AlertCircle } from "lucide-react";
 import { api } from "../../../lib/api";
 import { AuthContext } from "../../../lib/auth-context";
 
@@ -78,16 +78,11 @@ export const ChangePasswordCard: React.FC<ChangePasswordCardProps> = ({
 
   return (
     <div className="bg-white rounded-2xl border border-[#e9ebf0] p-6 shadow-xs space-y-4">
-      <div className="flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-lg bg-[#f0effe] text-[#555ad5] flex items-center justify-center">
-          <KeyRound className="w-4 h-4" />
-        </div>
-        <div>
-          <h2 className="text-sm font-bold text-[#212634]">Ganti password</h2>
-          <p className="text-xs text-[#717684]">
-            Perbarui password akun Anda secara berkala
-          </p>
-        </div>
+      <div>
+        <h2 className="text-sm font-bold text-[#212634]">Ganti password</h2>
+        <p className="text-xs text-[#717684] mt-0.5">
+          Perbarui password akun Anda secara berkala
+        </p>
       </div>
 
       {success && (

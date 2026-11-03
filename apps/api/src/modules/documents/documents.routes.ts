@@ -171,20 +171,27 @@ router.get(
   },
 );
 
-// GET /api/documents/:id - Detail view
-router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const docId = parseInt(req.params.id as string, 10);
-    if (isNaN(docId)) {
-      res.status(400).json({ error: "ID dokumen tidak valid." });
-      return;
+// GET /api/documents/:documentNumber - Detail view
+router.get(
+  "/:documentNumber",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const rawDocNumber = req.params.documentNumber;
+      if (typeof rawDocNumber !== "string" || !rawDocNumber.trim()) {
+        res.status(400).json({ error: "Nomor dokumen tidak valid." });
+        return;
+      }
+      const documentNumber = decodeURIComponent(rawDocNumber.trim());
+      const result = await docService.getDocumentDetail(
+        documentNumber,
+        req.user!,
+      );
+      res.json(result);
+    } catch (err) {
+      next(err);
     }
-    const result = await docService.getDocumentDetail(docId, req.user!);
-    res.json(result);
-  } catch (err) {
-    next(err);
-  }
-});
+  },
+);
 
 // POST /api/documents - Create new document (Assistant only)
 router.post(

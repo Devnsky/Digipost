@@ -18,12 +18,14 @@ export const App: React.FC = () => {
   const [currentPath, setCurrentPath] = useState<string>(
     window.location.pathname || "/",
   );
-  const [selectedDocumentId, setSelectedDocumentId] = useState<number | null>(
-    () => {
-      const match = window.location.pathname.match(/^\/documents\/(\d+)$/);
-      return match ? parseInt(match[1], 10) : null;
-    },
-  );
+  const [selectedDocumentNumber, setSelectedDocumentNumber] = useState<
+    string | null
+  >(() => {
+    const match = window.location.pathname.match(/^\/documents\/([^/]+)$/);
+    return match && match[1] !== "create"
+      ? decodeURIComponent(match[1])
+      : null;
+  });
 
   // Track previous authenticated user ID to reset navigation on login/logout/user-switch
   const prevUserIdRef = useRef<number | null | undefined>(undefined);
@@ -43,7 +45,7 @@ export const App: React.FC = () => {
       // Reset navigation state and URL cleanly to the root dashboard
       window.history.replaceState({}, "", "/");
       setCurrentPath("/");
-      setSelectedDocumentId(null);
+      setSelectedDocumentNumber(null);
       prevUserIdRef.current = currentUserId;
     }
   }, [user, isLoading]);
@@ -52,11 +54,11 @@ export const App: React.FC = () => {
     const handlePopState = () => {
       const path = window.location.pathname;
       setCurrentPath(path);
-      const match = path.match(/^\/documents\/(\d+)$/);
-      if (match) {
-        setSelectedDocumentId(parseInt(match[1], 10));
+      const match = path.match(/^\/documents\/([^/]+)$/);
+      if (match && match[1] !== "create") {
+        setSelectedDocumentNumber(decodeURIComponent(match[1]));
       } else {
-        setSelectedDocumentId(null);
+        setSelectedDocumentNumber(null);
       }
     };
     window.addEventListener("popstate", handlePopState);
@@ -66,17 +68,17 @@ export const App: React.FC = () => {
   const navigateTo = (path: string) => {
     window.history.pushState({}, "", path);
     setCurrentPath(path);
-    const match = path.match(/^\/documents\/(\d+)$/);
-    if (match) {
-      setSelectedDocumentId(parseInt(match[1], 10));
+    const match = path.match(/^\/documents\/([^/]+)$/);
+    if (match && match[1] !== "create") {
+      setSelectedDocumentNumber(decodeURIComponent(match[1]));
     } else {
-      setSelectedDocumentId(null);
+      setSelectedDocumentNumber(null);
     }
   };
 
-  const openDocumentDetail = (id: number) => {
-    setSelectedDocumentId(id);
-    navigateTo(`/documents/${id}`);
+  const openDocumentDetail = (documentNumber: string) => {
+    setSelectedDocumentNumber(documentNumber);
+    navigateTo(`/documents/${encodeURIComponent(documentNumber)}`);
   };
 
   if (isLoading) {
@@ -99,7 +101,7 @@ export const App: React.FC = () => {
   const isAssistant = user?.role === "assistant" || user?.role === "admin";
 
   const getBreadcrumbs = (): string[] => {
-    if (selectedDocumentId) {
+    if (selectedDocumentNumber) {
       return [
         "Workspace",
         isAssistant ? "Dokumen saya" : "Dokumen Departemen",
@@ -130,10 +132,10 @@ export const App: React.FC = () => {
   };
 
   const renderContent = () => {
-    if (selectedDocumentId) {
+    if (selectedDocumentNumber) {
       return (
         <DocumentDetailPage
-          documentId={selectedDocumentId}
+          documentNumber={selectedDocumentNumber}
           onBack={() =>
             navigateTo(isAssistant ? "/documents" : "/department-queue")
           }

@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 
 interface DepartmentQueuePageProps {
-  onSelectDocument: (id: number) => void;
+  onSelectDocument: (documentNumber: string) => void;
 }
 
 export const DepartmentQueuePage: React.FC<DepartmentQueuePageProps> = ({
@@ -157,7 +157,7 @@ export const DepartmentQueuePage: React.FC<DepartmentQueuePageProps> = ({
           }}
           className={`p-4 rounded-2xl border transition shadow-xs cursor-pointer flex flex-col justify-between ${
             statusFilter === "draft"
-              ? "bg-[#f0effe] border-[#555ad5] ring-2 ring-[#555ad5]/20"
+              ? "bg-slate-50 border-slate-300 ring-2 ring-slate-400/20"
               : "bg-white border-[#e9ebf0] hover:border-slate-300"
           }`}
         >
@@ -165,7 +165,7 @@ export const DepartmentQueuePage: React.FC<DepartmentQueuePageProps> = ({
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#717684]">
               Draft (Checker)
             </span>
-            <div className="w-6 h-6 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+            <div className="w-6 h-6 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
               <FileEdit className="w-3.5 h-3.5" />
             </div>
           </div>
@@ -187,7 +187,7 @@ export const DepartmentQueuePage: React.FC<DepartmentQueuePageProps> = ({
           }}
           className={`p-4 rounded-2xl border transition shadow-xs cursor-pointer flex flex-col justify-between ${
             statusFilter === "pending"
-              ? "bg-[#eff6ff] border-blue-500 ring-2 ring-blue-500/20"
+              ? "bg-[#f0effe] border-[#555ad5] ring-2 ring-[#555ad5]/20"
               : "bg-white border-[#e9ebf0] hover:border-slate-300"
           }`}
         >
@@ -195,7 +195,7 @@ export const DepartmentQueuePage: React.FC<DepartmentQueuePageProps> = ({
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#717684]">
               Pending
             </span>
-            <div className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+            <div className="w-6 h-6 rounded-lg bg-[#f0effe] text-[#555ad5] flex items-center justify-center">
               <Clock className="w-3.5 h-3.5" />
             </div>
           </div>
@@ -225,7 +225,7 @@ export const DepartmentQueuePage: React.FC<DepartmentQueuePageProps> = ({
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#717684]">
               Disetujui
             </span>
-            <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
               <CheckCircle className="w-3.5 h-3.5" />
             </div>
           </div>
@@ -255,7 +255,7 @@ export const DepartmentQueuePage: React.FC<DepartmentQueuePageProps> = ({
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#717684]">
               Ditolak
             </span>
-            <div className="w-6 h-6 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+            <div className="w-6 h-6 rounded-lg bg-rose-50 text-rose-700 flex items-center justify-center">
               <AlertTriangle className="w-3.5 h-3.5" />
             </div>
           </div>
@@ -264,7 +264,7 @@ export const DepartmentQueuePage: React.FC<DepartmentQueuePageProps> = ({
               {formatNumber(mgr.rejected)}
             </div>
             <div className="text-[10px] text-[#8a90a2] mt-0.5">
-              Ditolak (Terminal Opsi A)
+              Persetujuan dihentikan
             </div>
           </div>
         </div>
@@ -460,7 +460,7 @@ export const DepartmentQueuePage: React.FC<DepartmentQueuePageProps> = ({
                   <th className="py-3 px-6">Nama dokumen</th>
                   <th className="py-3 px-4">Pemohon &amp; asal</th>
                   <th className="py-3 px-4">Status keputusan</th>
-                  <th className="py-3 px-4">Agregasi Opsi A</th>
+                  <th className="py-3 px-4">Progres Persetujuan</th>
                   <th className="py-3 px-6 text-right">Aksi</th>
                 </tr>
               </thead>
@@ -480,7 +480,7 @@ export const DepartmentQueuePage: React.FC<DepartmentQueuePageProps> = ({
                     <tr key={doc.id} className="hover:bg-[#fbfbfc] transition">
                       <td className="py-3.5 px-6">
                         <div
-                          onClick={() => onSelectDocument(doc.id)}
+                          onClick={() => onSelectDocument(doc.document_number)}
                           className="font-bold text-[#212634] hover:text-[#555ad5] transition cursor-pointer line-clamp-1"
                         >
                           {doc.title}
@@ -536,7 +536,7 @@ export const DepartmentQueuePage: React.FC<DepartmentQueuePageProps> = ({
 
                       <td className="py-3.5 px-6 text-right whitespace-nowrap">
                         <button
-                          onClick={() => onSelectDocument(doc.id)}
+                          onClick={() => onSelectDocument(doc.document_number)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#f0effe] hover:bg-[#e4e2fd] text-[#555ad5] text-xs font-semibold transition cursor-pointer"
                         >
                           <span>Lihat dokumen</span>

@@ -135,7 +135,7 @@ describe("Document Allowed Actions Permission Matrix Unit Tests", () => {
     expect(actions.can_add_dept).toBe(true);
   });
 
-  it("Dept Manager dari departemen tujuan yang lolos checker TIDAK berhak menambah departemen saat pending (Hanya Checker atau Manager pemohon)", () => {
+  it("Dept Manager dari departemen tujuan yang lolos checker berhak menambah departemen tujuan saat pending (TC-06, BR-15)", () => {
     const targetDeptManager = { id: 30, role: "dept_manager", department_id: 2 };
     const pendingDoc = { ...baseDoc, status: "pending", review_stage: null };
     const actions = computeAllowedActions({
@@ -145,7 +145,7 @@ describe("Document Allowed Actions Permission Matrix Unit Tests", () => {
       hasVersions: true,
     });
 
-    expect(actions.can_add_dept).toBe(false);
+    expect(actions.can_add_dept).toBe(true);
     expect(actions.can_dept_decide).toBe(true);
     expect(actions.can_respond).toBe(true);
   });

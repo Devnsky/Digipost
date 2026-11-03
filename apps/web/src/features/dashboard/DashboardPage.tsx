@@ -13,7 +13,7 @@ import { AssistantDashboardView } from "./components/AssistantDashboardView";
 
 interface DashboardPageProps {
   onNavigate: (path: string) => void;
-  onSelectDocument: (id: number) => void;
+  onSelectDocument: (documentNumber: string) => void;
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({

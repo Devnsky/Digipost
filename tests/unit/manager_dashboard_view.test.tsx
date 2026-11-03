@@ -109,7 +109,7 @@ describe("ManagerDashboardView Component", () => {
     expect(html).toContain("Hendra Gunawan");
     expect(html).toContain("Perjanjian Kerjasama Vendor");
     expect(html).toContain("DOC-2026-088");
-    expect(html).toContain("All Latest Documents intended for my Dept.");
+    expect(html).toContain("Daftar Dokumen Masuk");
     expect(html).toContain("Menunggu persetujuan");
   });
 });

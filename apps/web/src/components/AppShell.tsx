@@ -11,7 +11,6 @@ import {
   ShieldCheck,
   HelpCircle,
   LogOut,
-  Building,
   Menu,
   X,
 } from "lucide-react";
@@ -254,20 +253,8 @@ export const AppShell: React.FC<AppShellProps> = ({
             <DigiPostLogo />
           </div>
 
-          {/* Internal Workspace Box */}
-          <div className="mx-4 mb-5 p-3 rounded-xl border border-[#e9ebf0] bg-white flex items-center gap-3 shadow-xs">
-            <div className="w-8 h-8 rounded-lg bg-[#f0effe] flex items-center justify-center text-[#555ad5] shrink-0">
-              <Building className="w-4 h-4" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-xs font-bold text-[#212634] leading-tight">
-                Internal Workspace
-              </div>
-              <div className="text-[10px] text-[#717684] truncate">
-                Document management
-              </div>
-            </div>
-          </div>
+          {/* Divider */}
+          <div className="mx-5 mb-4 border-b border-[#f0f2f5]" />
 
           {/* Menu Utama */}
           <div className="mb-2">
@@ -596,8 +583,7 @@ export const AppShell: React.FC<AppShellProps> = ({
           </h2>
           <p className="text-xs text-[#52568a] leading-relaxed">
             DigiPost menerapkan alur verifikasi dua tingkat: pemeriksaan atasan
-            langsung (*Maker-Checker*) dan persetujuan multi-departemen
-            (*Agregasi Opsi A*).
+            langsung (*Maker-Checker*) dan persetujuan seluruh departemen tujuan.
           </p>
 
           <div className="space-y-2.5 pt-2 text-xs text-[#4b5563]">
@@ -616,7 +602,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             </div>
             <div className="p-3 rounded-xl bg-[#f7f8fc] border border-[#e9ebf0]">
               <strong className="text-[#212634]">
-                03. Persetujuan Departemen (Opsi A):
+                03. Persetujuan Departemen:
               </strong>{" "}
               Seluruh departemen tujuan harus menyetujui agar dokumen berstatus
               `approved`. Status tetap `pending` sampai seluruh departemen

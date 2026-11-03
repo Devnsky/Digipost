@@ -1,6 +1,22 @@
 export function formatNumber(num: string | number | undefined): string {
   const val = Number(num) || 0;
-  return val < 10 ? `0${val}` : `${val}`;
+  return val.toLocaleString("id-ID");
+}
+
+export function formatAuditAction(action: string): string {
+  const actionMap: Record<string, string> = {
+    create: "Dokumen Dibuat",
+    submit: "Diajukan ke Pemeriksa",
+    checker_approve: "Disetujui Pemeriksa (Checker)",
+    request_revision: "Permintaan Revisi",
+    dept_approve: "Persetujuan Departemen Diberikan",
+    dept_reject: "Pengajuan Ditolak Departemen",
+    cancel: "Pengajuan Dibatalkan Pemohon",
+    aggregate: "Keputusan Final Agregasi Sistem",
+    upload_version: "Revisi Berkas Diunggah",
+    edit_metadata: "Informasi Dokumen Diperbarui",
+  };
+  return actionMap[action] || action;
 }
 
 export function formatDate(dateStr?: string): string {

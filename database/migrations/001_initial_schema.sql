@@ -617,8 +617,12 @@ BEGIN
     RAISE EXCEPTION 'Dokumen tidak berstatus pending';
   END IF;
 
-  -- HANYA Checker atau Manajer dari Assistant yang mengajukan dokumen
+  -- Diizinkan: Dept Manager tujuan dokumen, Checker dokumen, ATAU Manager dari pembuat dokumen
   IF NOT EXISTS (
+    SELECT 1 FROM document_departments dd
+    JOIN departments dep ON dep.id = dd.department_id
+    WHERE dd.document_id = p_document_id AND dep.manager_id = p_actor_id
+  ) AND NOT EXISTS (
     SELECT 1 FROM documents d2
     JOIN users app ON app.id = d2.applicant_id
     LEFT JOIN departments adep ON adep.id = app.department_id
@@ -628,7 +632,7 @@ BEGIN
       adep.manager_id = p_actor_id
     )
   ) THEN
-    RAISE EXCEPTION 'Hanya Checker atau Manager dari pembuat dokumen yang boleh menambah departemen';
+    RAISE EXCEPTION 'Hanya Dept Manager yang berwenang, Checker, atau Manager pemohon yang boleh menambah departemen';
   END IF;
 
   SELECT manager_id INTO v_mgr FROM departments WHERE id = p_department_id AND is_active = TRUE;

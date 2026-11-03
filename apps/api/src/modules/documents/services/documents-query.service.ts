@@ -431,8 +431,8 @@ export async function getDocumentStats(user: AuthUser) {
   };
 }
 
-export async function getDocumentDetail(documentId: number, user: AuthUser) {
-  // 1. Fetch document
+export async function getDocumentDetail(documentNumber: string, user: AuthUser) {
+  // 1. Fetch document by official public document_number
   const docResult = await query(
     `
     SELECT
@@ -451,9 +451,9 @@ export async function getDocumentDetail(documentId: number, user: AuthUser) {
     LEFT JOIN departments app_dep ON app_dep.id = app.department_id
     LEFT JOIN users chk ON chk.id = d.checker_id
     LEFT JOIN departments chk_dep ON chk_dep.id = chk.department_id
-    WHERE d.id = $1 AND d.deleted_at IS NULL
+    WHERE d.document_number = $1 AND d.deleted_at IS NULL
   `,
-    [documentId],
+    [documentNumber],
   );
 
   if (docResult.rowCount === 0) {
@@ -461,6 +461,7 @@ export async function getDocumentDetail(documentId: number, user: AuthUser) {
   }
 
   const doc = docResult.rows[0];
+  const internalDocId = Number(doc.id);
 
   // 2. Fetch intended departments
   const deptsResult = await query(
@@ -488,7 +489,7 @@ export async function getDocumentDetail(documentId: number, user: AuthUser) {
     WHERE dd.document_id = $1
     ORDER BY dd.id ASC
   `,
-    [documentId],
+    [internalDocId],
   );
 
   const intendedDepartments = deptsResult.rows;
@@ -598,10 +599,10 @@ export async function getDocumentDetail(documentId: number, user: AuthUser) {
   // Execute independent relational queries concurrently via Promise.all
   const [versionsResult, responsesResult, decisionHistoryResult, logsResult] =
     await Promise.all([
-      query(versionsQuery, [documentId]),
-      query(responsesQuery, [documentId]),
-      query(decisionHistoryQuery, [documentId]),
-      query(logsQuery, [documentId]),
+      query(versionsQuery, [internalDocId]),
+      query(responsesQuery, [internalDocId]),
+      query(decisionHistoryQuery, [internalDocId]),
+      query(logsQuery, [internalDocId]),
     ]);
 
   // 8. Compute Allowed Actions

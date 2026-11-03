@@ -28,15 +28,31 @@ import { DocumentActionsCard } from "./components/DocumentActionsCard";
 import { DocumentTimelineCard } from "./components/DocumentTimelineCard";
 import { ArrowLeft, AlertTriangle, RefreshCw } from "lucide-react";
 
+export function useParams<
+  T extends Record<string, string> = { documentNumber: string },
+>(): Partial<T> {
+  if (typeof window === "undefined") return {} as Partial<T>;
+  const match = window.location.pathname.match(/^\/documents\/([^/]+)$/);
+  if (match && match[1] !== "create") {
+    return {
+      documentNumber: decodeURIComponent(match[1]),
+    } as unknown as Partial<T>;
+  }
+  return {} as Partial<T>;
+}
+
 interface DocumentDetailPageProps {
-  documentId: number;
+  documentNumber?: string;
   onBack: () => void;
 }
 
 export const DocumentDetailPage: React.FC<DocumentDetailPageProps> = ({
-  documentId,
+  documentNumber: propDocumentNumber,
   onBack,
 }) => {
+  const { documentNumber: paramDocNumber } =
+    useParams<{ documentNumber: string }>();
+  const documentNumber = propDocumentNumber || paramDocNumber || "";
   const { user } = useAuth();
   const toast = useToast();
   const confirm = useConfirm();
@@ -85,10 +101,11 @@ export const DocumentDetailPage: React.FC<DocumentDetailPageProps> = ({
   const [previewError, setPreviewError] = useState("");
 
   const fetchDetail = useCallback(async () => {
+    if (!documentNumber) return;
     setLoading(true);
     setError("");
     try {
-      const res = await api.documents.getDetail(documentId);
+      const res = await api.documents.getDetail(documentNumber);
       setData(res);
       setEditTitle(res.document.title);
       setEditDescription(res.document.description || "");
@@ -97,7 +114,7 @@ export const DocumentDetailPage: React.FC<DocumentDetailPageProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [documentId]);
+  }, [documentNumber]);
 
   useEffect(() => {
     fetchDetail();
@@ -473,7 +490,11 @@ export const DocumentDetailPage: React.FC<DocumentDetailPageProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#8a90a2] block">
-              Workspace / Dokumen Saya / Detail
+              {user?.role === "dept_manager"
+                ? "Workspace / Dokumen Departemen / Detail"
+                : user?.role === "checker"
+                  ? "Pemeriksaan / Pemeriksaan Atasan / Detail"
+                  : "Workspace / Dokumen Saya / Detail"}
             </span>
             <h1 className="text-2xl sm:text-[28px] font-extrabold text-[#212634] tracking-tight">
               {doc.title}

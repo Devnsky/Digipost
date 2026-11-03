@@ -4,6 +4,7 @@ import {
   deleteDocument,
   cancelDocument,
 } from "../../apps/api/src/modules/documents/services/documents-mutation.service";
+import { getDocumentDetail } from "../../apps/api/src/modules/documents/services/documents-query.service";
 import {
   checkerDecide,
   checkerComment,
@@ -22,7 +23,10 @@ const mockClient = {
   query: vi.fn(),
 };
 
+const mockDbQuery = vi.fn();
+
 vi.mock("../../apps/api/src/db", () => ({
+  query: (...args: any[]) => mockDbQuery(...args),
   withTransaction: vi.fn(async (cb: (client: any) => Promise<any>) => {
     return await cb(mockClient);
   }),
@@ -149,7 +153,7 @@ describe("Document Mutation & Workflow Core Contracts Unit Tests", () => {
       expect(res.message).toContain("Keputusan departemen berhasil disimpan");
     });
 
-    it("addDepartmentPending menolak jika bukan checker atau manager dari pembuat dokumen", async () => {
+    it("addDepartmentPending menolak jika bukan checker, manager pembuat dokumen, atau target dept manager", async () => {
       const otherManager: any = {
         id: 99,
         role: "dept_manager",
@@ -165,6 +169,7 @@ describe("Document Mutation & Workflow Core Contracts Unit Tests", () => {
             applicant_department_id: 1,
             applicant_dept_manager_id: 50,
             applicant_manager_id: 50,
+            is_target_dept_manager: false,
           },
         ],
       });
@@ -172,6 +177,37 @@ describe("Document Mutation & Workflow Core Contracts Unit Tests", () => {
       await expect(
         addDepartmentPending(100, 3, otherManager),
       ).rejects.toThrow(ForbiddenError);
+    });
+
+    it("addDepartmentPending mengizinkan jika pemanggil adalah manager departemen tujuan (TC-06)", async () => {
+      const targetManager: any = {
+        id: 2,
+        role: "dept_manager",
+        department_id: 2,
+      };
+      mockClient.query
+        .mockResolvedValueOnce({
+          rowCount: 1,
+          rows: [
+            {
+              checker_id: 20,
+              status: "pending",
+              version: 1,
+              applicant_department_id: 1,
+              applicant_dept_manager_id: 50,
+              applicant_manager_id: 50,
+              is_target_dept_manager: true,
+            },
+          ],
+        })
+        .mockResolvedValueOnce({ rowCount: 1, rows: [] });
+
+      const res = await addDepartmentPending(100, 3, targetManager);
+      expect(res.message).toContain("berhasil ditambahkan");
+      expect(mockClient.query).toHaveBeenCalledWith(
+        `SELECT sp_add_department($1, $2, $3)`,
+        [100, 3, 2],
+      );
     });
 
     it("addDepartmentPending mengizinkan jika pemanggil adalah checker dokumen", async () => {
@@ -202,6 +238,71 @@ describe("Document Mutation & Workflow Core Contracts Unit Tests", () => {
         `SELECT sp_add_department($1, $2, $3)`,
         [100, 3, 20],
       );
+    });
+  });
+
+  describe("Public Document Number Resolution (getDocumentDetail)", () => {
+    const mockUser: any = {
+      id: 10,
+      role: "assistant",
+      department_id: 1,
+    };
+
+    it("mengambil dokumen berdasarkan document_number unik dan me-resolve ID internal untuk relasi", async () => {
+      // 1. Mock document query by document_number
+      mockDbQuery.mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [
+          {
+            id: 42,
+            document_number: "IAC-26110001",
+            title: "Pengadaan Laptop Baru",
+            status: "draft",
+            review_stage: "applicant",
+            applicant_id: 10,
+            version: 1,
+          },
+        ],
+      });
+
+      // 2. Mock intended departments query
+      mockDbQuery.mockResolvedValueOnce({
+        rowCount: 0,
+        rows: [],
+      });
+
+      // 3. Mock Promise.all (versions, responses, decision history, logs)
+      mockDbQuery
+        .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1, version_no: 1 }] })
+        .mockResolvedValueOnce({ rowCount: 0, rows: [] })
+        .mockResolvedValueOnce({ rowCount: 0, rows: [] })
+        .mockResolvedValueOnce({ rowCount: 0, rows: [] });
+
+      const result = await getDocumentDetail("IAC-26110001", mockUser);
+
+      expect(result.document.document_number).toBe("IAC-26110001");
+      expect(result.document.id).toBe(42);
+
+      // Verifikasi query pertama mengambil berdasarkan document_number
+      const firstCall = mockDbQuery.mock.calls[0];
+      expect(firstCall[0]).toContain("d.document_number = $1");
+      expect(firstCall[1]).toEqual(["IAC-26110001"]);
+
+      // Verifikasi query departemen & relasi menggunakan ID internal 42
+      const secondCall = mockDbQuery.mock.calls[1];
+      expect(secondCall[0]).toContain("dd.document_id = $1");
+      expect(secondCall[1]).toEqual([42]);
+    });
+
+    it("melemparkan NotFoundError jika document_number tidak ditemukan", async () => {
+      mockDbQuery.mockResolvedValueOnce({
+        rowCount: 0,
+        rows: [],
+      });
+
+      await expect(
+        getDocumentDetail("NON-EXISTENT", mockUser),
+      ).rejects.toThrow(NotFoundError);
     });
   });
 });

@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 
 interface CheckerQueuePageProps {
-  onSelectDocument: (id: number) => void;
+  onSelectDocument: (documentNumber: string) => void;
 }
 
 export const CheckerQueuePage: React.FC<CheckerQueuePageProps> = ({
@@ -269,7 +269,7 @@ export const CheckerQueuePage: React.FC<CheckerQueuePageProps> = ({
                       >
                         <td className="py-3.5 px-6">
                           <div
-                            onClick={() => onSelectDocument(doc.id)}
+                            onClick={() => onSelectDocument(doc.document_number)}
                             className="font-bold text-[#212634] hover:text-[#555ad5] transition cursor-pointer line-clamp-1"
                           >
                             {doc.title}
@@ -298,7 +298,7 @@ export const CheckerQueuePage: React.FC<CheckerQueuePageProps> = ({
 
                         <td className="py-3.5 px-6 text-right whitespace-nowrap">
                           <button
-                            onClick={() => onSelectDocument(doc.id)}
+                            onClick={() => onSelectDocument(doc.document_number)}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#f0effe] hover:bg-[#e4e2fd] text-[#555ad5] text-xs font-semibold transition cursor-pointer"
                           >
                             <span>Tinjau dokumen</span>
@@ -415,7 +415,7 @@ export const CheckerQueuePage: React.FC<CheckerQueuePageProps> = ({
                 </span>
                 <span className="text-[#212634]">
                   <strong>Multi-departemen:</strong> Seluruh departemen tujuan
-                  wajib menyetujui (Opsi A).
+                  wajib memberikan persetujuan sebelum dokumen disahkan.
                 </span>
               </div>
             </div>

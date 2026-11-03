@@ -60,7 +60,7 @@ describe("DocumentNoticeBanner Component", () => {
     expect(html).toContain("Periksa catatan revisi");
   });
 
-  it("renders pending banner explaining Opsi A consensus", () => {
+  it("renders pending banner explaining consensus requirements", () => {
     const doc = {
       ...baseDoc,
       status: "pending" as const,
@@ -69,8 +69,8 @@ describe("DocumentNoticeBanner Component", () => {
     const html = renderToStaticMarkup(
       <DocumentNoticeBanner doc={doc} responses={[]} />,
     );
-    expect(html).toContain("Opsi A");
-    expect(html).toContain("seluruh departemen harus menyetujui");
+    expect(html).toContain("Seluruh departemen tujuan");
+    expect(html).toContain("harus menyetujui agar dokumen dapat disahkan");
   });
 
   it("renders approved final banner", () => {

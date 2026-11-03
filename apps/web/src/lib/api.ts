@@ -147,8 +147,10 @@ export const api = {
 
     getStats: () => request<DashboardStats>("/api/documents/stats"),
 
-    getDetail: (id: number) =>
-      request<DocumentDetailResponse>(`/api/documents/${id}`),
+    getDetail: (documentNumber: string) =>
+      request<DocumentDetailResponse>(
+        `/api/documents/${encodeURIComponent(documentNumber)}`,
+      ),
 
     create: (formData: FormData) =>
       request<{ message: string; document: any }>("/api/documents", {

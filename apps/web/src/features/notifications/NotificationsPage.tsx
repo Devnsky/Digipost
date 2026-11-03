@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 interface NotificationsPageProps {
-  onSelectDocument: (id: number) => void;
+  onSelectDocument: (documentNumber: string) => void;
 }
 
 export const NotificationsPage: React.FC<NotificationsPageProps> = ({
@@ -62,12 +62,12 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
       if (!notif.is_read) {
         await api.notifications.markRead(notif.id);
       }
-      if (notif.document_id) {
-        onSelectDocument(notif.document_id);
+      if (notif.document_number) {
+        onSelectDocument(notif.document_number);
       }
     } catch {
-      if (notif.document_id) {
-        onSelectDocument(notif.document_id);
+      if (notif.document_number) {
+        onSelectDocument(notif.document_number);
       }
     }
   };

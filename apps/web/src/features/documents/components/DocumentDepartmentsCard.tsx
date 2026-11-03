@@ -34,7 +34,7 @@ export const DocumentDepartmentsCard: React.FC<
             Departemen tujuan
           </h2>
           <p className="text-xs text-[#717684] mt-0.5">
-            Seluruh departemen berikut wajib menyetujui sesuai aturan Opsi A
+            Seluruh departemen berikut wajib memberikan persetujuan sebelum dokumen disahkan
           </p>
         </div>
 

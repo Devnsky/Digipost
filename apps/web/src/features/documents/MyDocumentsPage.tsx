@@ -15,7 +15,7 @@ import {
 
 interface MyDocumentsPageProps {
   onNavigate: (path: string) => void;
-  onSelectDocument: (id: number) => void;
+  onSelectDocument: (documentNumber: string) => void;
 }
 
 export const MyDocumentsPage: React.FC<MyDocumentsPageProps> = ({
@@ -292,7 +292,7 @@ export const MyDocumentsPage: React.FC<MyDocumentsPageProps> = ({
                       {/* Nama Dokumen */}
                       <td className="py-3.5 px-6">
                         <div
-                          onClick={() => onSelectDocument(doc.id)}
+                          onClick={() => onSelectDocument(doc.document_number)}
                           className="font-bold text-[#212634] hover:text-[#555ad5] transition cursor-pointer line-clamp-1"
                           title={doc.title}
                         >
@@ -330,7 +330,7 @@ export const MyDocumentsPage: React.FC<MyDocumentsPageProps> = ({
                       {/* Aksi Button matching Screenshot */}
                       <td className="py-3.5 px-6 text-right whitespace-nowrap">
                         <button
-                          onClick={() => onSelectDocument(doc.id)}
+                          onClick={() => onSelectDocument(doc.document_number)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#f0effe] hover:bg-[#e4e2fd] text-[#555ad5] text-xs font-semibold transition cursor-pointer"
                         >
                           <span>Lihat dokumen</span>

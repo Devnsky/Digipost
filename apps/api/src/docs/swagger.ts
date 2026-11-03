@@ -505,7 +505,7 @@ export const swaggerDocument = {
         },
       },
     },
-    "/documents/{id}": {
+    "/documents/{documentNumber}": {
       get: {
         tags: ["Documents"],
         summary: "Detail lengkap dokumen",
@@ -513,11 +513,11 @@ export const swaggerDocument = {
           "Mengambil data lengkap dokumen mencakup metadata, departemen tujuan, riwayat versi, log persetujuan, thread respons, dan izin aksi (allowedActions).",
         parameters: [
           {
-            name: "id",
+            name: "documentNumber",
             in: "path",
             required: true,
-            schema: { type: "integer" },
-            description: "ID Dokumen",
+            schema: { type: "string", example: "IAC-26110001" },
+            description: "Nomor Dokumen resmi (misal: IAC-26110001)",
           },
         ],
         responses: {
@@ -534,6 +534,8 @@ export const swaggerDocument = {
           },
         },
       },
+    },
+    "/documents/{id}": {
       delete: {
         tags: ["Documents"],
         summary: "Hapus draft dokumen",

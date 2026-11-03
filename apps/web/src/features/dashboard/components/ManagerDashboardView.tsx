@@ -45,7 +45,7 @@ export interface ManagerDashboardViewProps {
   hasActiveFilters: boolean;
   handleSearchSubmit: (e: React.FormEvent) => void;
   handleClearFilters: () => void;
-  onSelectDocument: (id: number) => void;
+  onSelectDocument: (documentNumber: string) => void;
 }
 
 import { formatNumber, formatDate } from "../../../lib/formatters";
@@ -128,7 +128,7 @@ export const ManagerDashboardView: React.FC<ManagerDashboardViewProps> = ({
           }}
           className={`p-4 rounded-2xl border transition shadow-xs cursor-pointer flex flex-col justify-between ${
             statusTab === "draft"
-              ? "bg-[#f0effe] border-[#555ad5] ring-2 ring-[#555ad5]/20"
+              ? "bg-slate-50 border-slate-300 ring-2 ring-slate-400/20"
               : "bg-white border-[#e9ebf0] hover:border-slate-300"
           }`}
         >
@@ -136,7 +136,7 @@ export const ManagerDashboardView: React.FC<ManagerDashboardViewProps> = ({
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#717684]">
               Draft
             </span>
-            <div className="w-6 h-6 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+            <div className="w-6 h-6 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
               <FileEdit className="w-3.5 h-3.5" />
             </div>
           </div>
@@ -158,7 +158,7 @@ export const ManagerDashboardView: React.FC<ManagerDashboardViewProps> = ({
           }}
           className={`p-4 rounded-2xl border transition shadow-xs cursor-pointer flex flex-col justify-between ${
             statusTab === "pending"
-              ? "bg-[#eff6ff] border-blue-500 ring-2 ring-blue-500/20"
+              ? "bg-[#f0effe] border-[#555ad5] ring-2 ring-[#555ad5]/20"
               : "bg-white border-[#e9ebf0] hover:border-slate-300"
           }`}
         >
@@ -166,7 +166,7 @@ export const ManagerDashboardView: React.FC<ManagerDashboardViewProps> = ({
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#717684]">
               Pending
             </span>
-            <div className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+            <div className="w-6 h-6 rounded-lg bg-[#f0effe] text-[#555ad5] flex items-center justify-center">
               <Clock className="w-3.5 h-3.5" />
             </div>
           </div>
@@ -196,7 +196,7 @@ export const ManagerDashboardView: React.FC<ManagerDashboardViewProps> = ({
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#717684]">
               Approved
             </span>
-            <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
               <CheckSquare className="w-3.5 h-3.5" />
             </div>
           </div>
@@ -226,7 +226,7 @@ export const ManagerDashboardView: React.FC<ManagerDashboardViewProps> = ({
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#717684]">
               Rejected
             </span>
-            <div className="w-6 h-6 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+            <div className="w-6 h-6 rounded-lg bg-rose-50 text-rose-700 flex items-center justify-center">
               <AlertTriangle className="w-3.5 h-3.5" />
             </div>
           </div>
@@ -273,13 +273,13 @@ export const ManagerDashboardView: React.FC<ManagerDashboardViewProps> = ({
 
       {/* Main Document Table Section */}
       <div className="bg-white rounded-2xl border border-[#e9ebf0] p-6 shadow-xs space-y-4">
-        {/* Header Title matching wireframe: All Latest Documents intended for my Dept. */}
+        {/* Header Title matching wireframe: Daftar Dokumen Masuk */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <h2 className="text-sm font-bold text-[#212634]">
               {statusTab === "draft"
                 ? "Antrean Pemeriksaan Draft (Checker)"
-                : "All Latest Documents intended for my Dept."}
+                : "Daftar Dokumen Masuk"}
             </h2>
             <p className="text-xs text-[#717684] mt-0.5">
               {statusTab === "draft"
@@ -292,7 +292,7 @@ export const ManagerDashboardView: React.FC<ManagerDashboardViewProps> = ({
           </span>
         </div>
 
-        {/* Filter Bar matching wireframe: Search by Document ID, Filter by Date, Filter by Department */}
+        {/* Filter Bar: Search, Date, Department */}
         <div className="pt-1 pb-2 border-b border-[#f0f2f5] space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5">
             {/* Search by Document ID / Name */}
@@ -305,7 +305,7 @@ export const ManagerDashboardView: React.FC<ManagerDashboardViewProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by Document ID..."
+                placeholder="Cari nomor atau judul dokumen..."
                 className="w-full pl-9 pr-3 py-2 bg-[#fbfbfc] border border-[#e9ebf0] rounded-xl text-xs text-[#212634] placeholder-[#8a90a2] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#555ad5]/20 focus:border-[#555ad5] transition"
               />
             </form>
@@ -349,7 +349,7 @@ export const ManagerDashboardView: React.FC<ManagerDashboardViewProps> = ({
                 }}
                 className="w-full px-3 py-2 bg-[#fbfbfc] border border-[#e9ebf0] rounded-xl text-xs text-[#212634] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#555ad5]/20 focus:border-[#555ad5] transition cursor-pointer"
               >
-                <option value="">Filter by Department (Semua)</option>
+                <option value="">Departemen Pemohon (Semua)</option>
                 {departments.map((dept) => (
                   <option key={dept.id} value={dept.id}>
                     {dept.code} - {dept.name}
@@ -427,10 +427,10 @@ export const ManagerDashboardView: React.FC<ManagerDashboardViewProps> = ({
             <table className="w-full text-left text-xs min-w-[760px]">
               <thead>
                 <tr className="border-b border-[#e9ebf0] text-[10px] font-bold uppercase tracking-wider text-[#8a90a2]">
-                  <th className="py-3 px-6">Document ID</th>
-                  <th className="py-3 px-4">Date Published</th>
-                  <th className="py-3 px-4">Applicant Dept.</th>
-                  <th className="py-3 px-4">Applicant Name</th>
+                  <th className="py-3 px-6">Nomor Dokumen</th>
+                  <th className="py-3 px-4">Tanggal Pengajuan</th>
+                  <th className="py-3 px-4">Departemen Pemohon</th>
+                  <th className="py-3 px-4">Nama Pemohon</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-6 text-right">Aksi</th>
                 </tr>
@@ -443,7 +443,7 @@ export const ManagerDashboardView: React.FC<ManagerDashboardViewProps> = ({
                   >
                     <td className="py-3.5 px-6 whitespace-nowrap">
                       <div
-                        onClick={() => onSelectDocument(doc.id)}
+                        onClick={() => onSelectDocument(doc.document_number)}
                         className="font-bold text-[#212634] hover:text-[#555ad5] transition cursor-pointer"
                       >
                         {doc.document_number}
@@ -476,7 +476,7 @@ export const ManagerDashboardView: React.FC<ManagerDashboardViewProps> = ({
 
                     <td className="py-3.5 px-6 text-right whitespace-nowrap">
                       <button
-                        onClick={() => onSelectDocument(doc.id)}
+                        onClick={() => onSelectDocument(doc.document_number)}
                         className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#f0effe] hover:bg-[#e4e2fd] text-[#555ad5] text-xs font-semibold transition cursor-pointer"
                       >
                         <span>Lihat</span>

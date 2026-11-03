@@ -35,7 +35,7 @@ export const AddDepartmentModal: React.FC<AddDepartmentModalProps> = ({
       <form onSubmit={onSubmit} className="space-y-4">
         <p className="text-xs text-[#717684] leading-relaxed">
           Departemen baru yang ditambahkan wajib memberikan persetujuan sebelum
-          dokumen berstatus Approved sesuai aturan agregasi Opsi A.
+          dokumen dapat disahkan secara resmi.
         </p>
 
         <div>

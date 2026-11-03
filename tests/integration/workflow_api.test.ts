@@ -1,9 +1,17 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
 import { Pool } from "pg";
+import { PDFDocument } from "pdf-lib";
 import { createApp } from "../../apps/api/src/server";
 import { runMigrations, runSeed } from "../../database/runner";
 import { testDatabaseUrl } from "../setup";
+
+async function createValidPdfBuffer(): Promise<Buffer> {
+  const pdfDoc = await PDFDocument.create();
+  pdfDoc.addPage([200, 200]);
+  const bytes = await pdfDoc.save();
+  return Buffer.from(bytes);
+}
 
 let pool: Pool;
 let app: any;
@@ -58,13 +66,20 @@ describe("E2E Maker-Checker & Multi-Department Approval Workflow", () => {
       .field("department_ids", JSON.stringify([hrDept.id, finDept.id]))
       .attach(
         "file",
-        Buffer.from("%PDF-1.4\n% Sample PDF Content\n%%EOF"),
+        await createValidPdfBuffer(),
         "Pengadaan_Laptop.pdf",
       );
 
     expect(createRes.status).toBe(201);
     const docId = createRes.body.document.id;
+    const docNumber = createRes.body.document.document_number;
     let expectedVersion = createRes.body.document.version;
+
+    // Verify access via integer ID is rejected (Strict Public Identifier)
+    const intIdLookup = await request(app)
+      .get(`/api/documents/${docId}`)
+      .set("Authorization", `Bearer ${aniToken}`);
+    expect(intIdLookup.status).toBe(404);
 
     // 2. Verify target departments CANNOT see this draft (BR-03 isolation)
     const hrQueueBefore = await request(app)
@@ -102,7 +117,7 @@ describe("E2E Maker-Checker & Multi-Department Approval Workflow", () => {
 
     // 6. Checker requests revision
     const detailBeforeRev = await request(app)
-      .get(`/api/documents/${docId}`)
+      .get(`/api/documents/${docNumber}`)
       .set("Authorization", `Bearer ${andiToken}`);
     expectedVersion = detailBeforeRev.body.document.version;
 
@@ -119,7 +134,7 @@ describe("E2E Maker-Checker & Multi-Department Approval Workflow", () => {
 
     // 7. Ani uploads version 2 and re-submits
     const detailAfterRev = await request(app)
-      .get(`/api/documents/${docId}`)
+      .get(`/api/documents/${docNumber}`)
       .set("Authorization", `Bearer ${aniToken}`);
     expectedVersion = detailAfterRev.body.document.version;
 
@@ -129,14 +144,14 @@ describe("E2E Maker-Checker & Multi-Department Approval Workflow", () => {
       .field("expected_version", expectedVersion)
       .attach(
         "file",
-        Buffer.from("%PDF-1.4\n% Sample PDF v2\n%%EOF"),
+        await createValidPdfBuffer(),
         "Pengadaan_Laptop_v2.pdf",
       );
 
     expect(v2Res.status).toBe(200);
 
     const detailBeforeResubmit = await request(app)
-      .get(`/api/documents/${docId}`)
+      .get(`/api/documents/${docNumber}`)
       .set("Authorization", `Bearer ${aniToken}`);
     expectedVersion = detailBeforeResubmit.body.document.version;
 
@@ -152,7 +167,7 @@ describe("E2E Maker-Checker & Multi-Department Approval Workflow", () => {
       .send({ body: "Vendor sudah dibandingkan, disetujui untuk diteruskan." });
 
     const detailBeforeApprove = await request(app)
-      .get(`/api/documents/${docId}`)
+      .get(`/api/documents/${docNumber}`)
       .set("Authorization", `Bearer ${andiToken}`);
     expectedVersion = detailBeforeApprove.body.document.version;
 
@@ -175,7 +190,7 @@ describe("E2E Maker-Checker & Multi-Department Approval Workflow", () => {
 
     // 10. HR Manager approves
     const detailBeforeHrDecide = await request(app)
-      .get(`/api/documents/${docId}`)
+      .get(`/api/documents/${docNumber}`)
       .set("Authorization", `Bearer ${sitiToken}`);
     expectedVersion = detailBeforeHrDecide.body.document.version;
 
@@ -198,7 +213,7 @@ describe("E2E Maker-Checker & Multi-Department Approval Workflow", () => {
 
     // 11. Finance Manager decides 'approved' -> Both departments approved -> FINAL APPROVED!
     const detailBeforeFinDecide = await request(app)
-      .get(`/api/documents/${docId}`)
+      .get(`/api/documents/${docNumber}`)
       .set("Authorization", `Bearer ${dewiToken}`);
     expectedVersion = detailBeforeFinDecide.body.document.version;
 
@@ -243,6 +258,7 @@ describe("E2E Maker-Checker & Multi-Department Approval Workflow", () => {
       .attach("file", Buffer.from("%PDF-1.4\n% to delete"), "delete_me.pdf");
 
     const docId = createRes.body.document.id;
+    const docNumber = createRes.body.document.document_number;
 
     // Delete it
     const delRes = await request(app)
@@ -253,7 +269,7 @@ describe("E2E Maker-Checker & Multi-Department Approval Workflow", () => {
 
     // Detail request returns 404
     const detailRes = await request(app)
-      .get(`/api/documents/${docId}`)
+      .get(`/api/documents/${docNumber}`)
       .set("Authorization", `Bearer ${aniToken}`);
 
     expect(detailRes.status).toBe(404);

@@ -16,7 +16,7 @@ import {
 
 interface CreateDocumentPageProps {
   onNavigate: (path: string) => void;
-  onSelectDocument: (id: number) => void;
+  onSelectDocument: (documentNumber: string) => void;
 }
 
 export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({
@@ -118,8 +118,8 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({
 
       const res = await api.documents.create(formData);
       toast.success("Draft dokumen berhasil dibuat.");
-      const newDocId = res.document.id;
-      onSelectDocument(newDocId);
+      const newDocNumber = res.document.document_number;
+      onSelectDocument(newDocNumber);
     } catch (err: any) {
       setError(err.message || "Gagal membuat dokumen");
       setLoading(false);
@@ -240,7 +240,7 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({
               </p>
             </div>
 
-            <div className="space-y-2.5 max-h-[310px] overflow-y-auto pr-1">
+            <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1">
               {departments.length === 0 ? (
                 <div className="p-4 text-center text-xs text-[#8a90a2]">
                   Memuat daftar departemen...
@@ -254,12 +254,12 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({
                     <div
                       key={dept.id}
                       onClick={() => !isConflict && toggleDept(dept.id)}
-                      className={`p-3.5 rounded-xl border transition flex items-start gap-3 select-none ${
+                      className={`p-2.5 rounded-xl border transition flex items-start gap-3 select-none ${
                         isConflict
                           ? "bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed"
                           : isSelected
                             ? "bg-[#f0effe]/50 border-[#555ad5] cursor-pointer"
-                            : "bg-white border-[#e9ebf0] hover:border-[#cbd0dd] cursor-pointer"
+                            : "bg-white border-[#e9ebf0] hover:border-slate-300 cursor-pointer"
                       }`}
                     >
                       <div
@@ -272,16 +272,16 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({
                         {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
                       </div>
 
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-[#212634]">
+                          <span className="text-xs font-bold text-[#212634] truncate">
                             {dept.name}
                           </span>
-                          <span className="text-[10px] font-mono px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded">
+                          <span className="text-[10px] font-mono px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded shrink-0">
                             {dept.code}
                           </span>
                         </div>
-                        <div className="text-[11px] text-[#717684] mt-0.5">
+                        <div className="text-[11px] text-[#717684] mt-0.5 truncate">
                           {isConflict ? (
                             <span className="text-rose-600 font-medium">
                               Konflik peran: Anda adalah manajer departemen ini
@@ -323,23 +323,23 @@ export const CreateDocumentPage: React.FC<CreateDocumentPageProps> = ({
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
             />
             <div
-              className={`border-2 border-dashed rounded-2xl p-8 text-center transition flex flex-col items-center justify-center gap-2 ${
+              className={`border-2 border-dashed rounded-2xl p-6 text-center transition flex flex-col items-center justify-center gap-2 ${
                 file
                   ? "border-emerald-300 bg-emerald-50/20"
                   : "border-[#e9ebf0] hover:border-[#555ad5] bg-[#fbfbfc] hover:bg-[#f0effe]/20"
               }`}
             >
               <div
-                className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                   file
                     ? "bg-emerald-100 text-emerald-600"
                     : "bg-[#f0effe] text-[#555ad5]"
                 }`}
               >
                 {file ? (
-                  <FileCheck className="w-6 h-6" />
+                  <FileCheck className="w-5 h-5" />
                 ) : (
-                  <Upload className="w-6 h-6" />
+                  <Upload className="w-5 h-5" />
                 )}
               </div>
 

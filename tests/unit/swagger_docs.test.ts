@@ -55,8 +55,9 @@ describe("OpenAPI 3.0 & Swagger UI Contract Unit Tests", () => {
     expect(paths["/documents"]).toHaveProperty("post");
     expect(paths).toHaveProperty("/documents/checker-queue");
     expect(paths).toHaveProperty("/documents/dept-queue");
+    expect(paths).toHaveProperty("/documents/{documentNumber}");
+    expect(paths["/documents/{documentNumber}"]).toHaveProperty("get");
     expect(paths).toHaveProperty("/documents/{id}");
-    expect(paths["/documents/{id}"]).toHaveProperty("get");
     expect(paths["/documents/{id}"]).toHaveProperty("delete");
     expect(paths).toHaveProperty("/documents/{id}/cancel");
 

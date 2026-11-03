@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   formatNumber,
+  formatAuditAction,
   formatDate,
   formatDateTime,
   getFirstName,
@@ -8,12 +9,21 @@ import {
 } from "../../apps/web/src/lib/formatters";
 
 describe("Web Formatters Unit Tests", () => {
-  it("formatNumber memformat angka dengan leading zero untuk nilai < 10", () => {
-    expect(formatNumber(0)).toBe("00");
-    expect(formatNumber(7)).toBe("07");
+  it("formatNumber memformat angka natural lokal tanpa leading zero buatan", () => {
+    expect(formatNumber(0)).toBe("0");
+    expect(formatNumber(7)).toBe("7");
     expect(formatNumber(10)).toBe("10");
     expect(formatNumber(42)).toBe("42");
-    expect(formatNumber(undefined)).toBe("00");
+    expect(formatNumber(undefined)).toBe("0");
+  });
+
+  it("formatAuditAction menerjemahkan action database mentah ke Bahasa Indonesia resmi", () => {
+    expect(formatAuditAction("create")).toBe("Dokumen Dibuat");
+    expect(formatAuditAction("submit")).toBe("Diajukan ke Pemeriksa");
+    expect(formatAuditAction("checker_approve")).toBe("Disetujui Pemeriksa (Checker)");
+    expect(formatAuditAction("dept_approve")).toBe("Persetujuan Departemen Diberikan");
+    expect(formatAuditAction("dept_reject")).toBe("Pengajuan Ditolak Departemen");
+    expect(formatAuditAction("unknown_action")).toBe("unknown_action");
   });
 
   it("getFirstName mengambil kata pertama dari nama lengkap pengguna", () => {

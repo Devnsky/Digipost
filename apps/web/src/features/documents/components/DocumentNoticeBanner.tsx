@@ -66,9 +66,8 @@ export const DocumentNoticeBanner: React.FC<DocumentNoticeBannerProps> = ({
         <Info className="w-4 h-4 text-[#555ad5] shrink-0 mt-0.5" />
         <p className="text-xs text-[#3a3e84] leading-relaxed">
           Dokumen telah disetujui oleh Checker dan saat ini dalam tahap
-          peninjauan oleh Seluruh Departemen Tujuan. Sesuai prinsip{" "}
-          <strong>Opsi A</strong>, seluruh departemen harus menyetujui agar
-          dokumen sah.
+          peninjauan oleh Seluruh Departemen Tujuan. Seluruh departemen tujuan
+          harus menyetujui agar dokumen dapat disahkan secara final.
         </p>
       </div>
     );
