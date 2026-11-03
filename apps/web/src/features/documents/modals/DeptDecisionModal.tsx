@@ -73,4 +73,3 @@ export const DeptDecisionModal: React.FC<DeptDecisionModalProps> = ({
     </Modal>
   );
 };
-

@@ -1,8 +1,23 @@
 import fs from "fs";
+import path from "path";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import mammoth from "mammoth";
 import { query } from "../../db";
+import { config } from "../../config";
 import { AuthUser } from "../../middleware/auth";
+import { NotFoundError, ForbiddenError } from "../../middleware/errors";
+
+export function resolveStorageFilePath(storedPath: string): string {
+  if (storedPath && fs.existsSync(storedPath)) {
+    return storedPath;
+  }
+  const basename = path.basename(storedPath);
+  const inUploadDir = path.resolve(config.uploadDir, basename);
+  if (fs.existsSync(inUploadDir)) {
+    return inUploadDir;
+  }
+  return storedPath;
+}
 
 export async function checkFileAccess(
   documentId: number,
@@ -16,9 +31,7 @@ export async function checkFileAccess(
   );
 
   if (docResult.rowCount === 0) {
-    const error = new Error("Dokumen tidak ditemukan atau sudah dihapus.");
-    (error as any).status = 404;
-    throw error;
+    throw new NotFoundError("Dokumen tidak ditemukan atau sudah dihapus.");
   }
 
   const doc = docResult.rows[0];
@@ -35,19 +48,15 @@ export async function checkFileAccess(
 
   if (doc.status === "draft") {
     if (!isApplicant && !isChecker) {
-      const error = new Error(
+      throw new ForbiddenError(
         "Anda tidak memiliki akses ke berkas dokumen ini.",
       );
-      (error as any).status = 403;
-      throw error;
     }
   } else {
     if (!isApplicant && !isChecker && !isDeptManager) {
-      const error = new Error(
+      throw new ForbiddenError(
         "Anda tidak memiliki akses ke berkas dokumen ini.",
       );
-      (error as any).status = 403;
-      throw error;
     }
   }
 
@@ -58,19 +67,17 @@ export async function checkFileAccess(
   );
 
   if (verResult.rowCount === 0) {
-    const error = new Error("Versi berkas tidak ditemukan.");
-    (error as any).status = 404;
-    throw error;
+    throw new NotFoundError("Versi berkas tidak ditemukan.");
   }
 
   const version = verResult.rows[0];
-  if (!fs.existsSync(version.file_path)) {
-    const error = new Error(
+  const resolvedPath = resolveStorageFilePath(version.file_path);
+  if (!fs.existsSync(resolvedPath)) {
+    throw new NotFoundError(
       "Berkas fisik tidak ditemukan di penyimpanan server.",
     );
-    (error as any).status = 404;
-    throw error;
   }
+  version.file_path = resolvedPath;
 
   return { document: doc, version };
 }
@@ -80,7 +87,7 @@ export async function getStampedPdfBuffer(
   docStatus: string,
   docNumber: string,
 ) {
-  const existingPdfBytes = fs.readFileSync(filePath);
+  const existingPdfBytes = await fs.promises.readFile(filePath);
   try {
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
     const pages = pdfDoc.getPages();

@@ -63,4 +63,3 @@ export const CancelDocumentModal: React.FC<CancelDocumentModalProps> = ({
     </Modal>
   );
 };
-

@@ -87,4 +87,3 @@ export const AddDepartmentModal: React.FC<AddDepartmentModalProps> = ({
     </Modal>
   );
 };
-

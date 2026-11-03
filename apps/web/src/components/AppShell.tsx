@@ -105,6 +105,9 @@ export const AppShell: React.FC<AppShellProps> = ({
   };
 
   const fetchBadgeCounts = async () => {
+    if (typeof document !== "undefined" && document.hidden) {
+      return; // Do not fetch in background when tab is hidden or minimized
+    }
     try {
       const notifs = await api.notifications.list({ is_read: false, limit: 1 });
       setUnreadNotifCount(notifs.unreadCount);
@@ -120,7 +123,18 @@ export const AppShell: React.FC<AppShellProps> = ({
   useEffect(() => {
     fetchBadgeCounts();
     const interval = setInterval(fetchBadgeCounts, 30000);
-    return () => clearInterval(interval);
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchBadgeCounts();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [currentPath]);
 
   // Format today's date in Indonesian

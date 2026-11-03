@@ -108,7 +108,10 @@ export const App: React.FC = () => {
     }
     switch (currentPath) {
       case "/documents":
-        return ["Workspace", isAssistant ? "Dokumen saya" : "Dokumen Departemen"];
+        return [
+          "Workspace",
+          isAssistant ? "Dokumen saya" : "Dokumen Departemen",
+        ];
       case "/create":
       case "/documents/create":
         return ["Workspace", "Dokumen saya", "Buat dokumen"];
@@ -139,12 +142,12 @@ export const App: React.FC = () => {
     }
 
     const userRole = user?.role || "assistant";
-    const canAccessChecker = [
-      "checker",
-      "dept_manager",
-      "admin",
-    ].includes(userRole);
-    const canAccessDept = ["dept_manager", "admin", "checker"].includes(userRole);
+    const canAccessChecker = ["checker", "dept_manager", "admin"].includes(
+      userRole,
+    );
+    const canAccessDept = ["dept_manager", "admin", "checker"].includes(
+      userRole,
+    );
 
     const AccessDeniedView = ({
       title,

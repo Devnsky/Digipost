@@ -10,8 +10,7 @@ dotenv.config({ path: path.resolve(__dirname, "../.env") });
 export const testUploadDir = path.resolve(__dirname, "../uploads/test-tmp");
 process.env.UPLOAD_DIR = testUploadDir;
 
-const rawTestDbUrl =
-  process.env.TEST_DATABASE_URL || process.env.DATABASE_URL;
+const rawTestDbUrl = process.env.TEST_DATABASE_URL || process.env.DATABASE_URL;
 
 if (!rawTestDbUrl || rawTestDbUrl.trim() === "") {
   console.error(

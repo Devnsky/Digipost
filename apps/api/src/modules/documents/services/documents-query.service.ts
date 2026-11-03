@@ -1,5 +1,7 @@
 import { query } from "../../../db";
 import { AuthUser } from "../../../middleware/auth";
+import { NotFoundError, ForbiddenError } from "../../../middleware/errors";
+import { computeAllowedActions } from "./documents-permission.service";
 
 export interface DocumentFilterOptions {
   status?: string;
@@ -357,9 +359,7 @@ export async function listDepartmentDocuments(
 }
 
 export async function getDocumentStats(user: AuthUser) {
-  // My documents counts (for assistant)
-  const myCountsResult = await query(
-    `
+  const myCountsQuery = `
     SELECT
       COUNT(*) as total,
       COUNT(*) FILTER (WHERE status = 'draft') as draft,
@@ -369,23 +369,15 @@ export async function getDocumentStats(user: AuthUser) {
       COUNT(*) FILTER (WHERE status = 'canceled') as canceled
     FROM documents
     WHERE applicant_id = $1 AND deleted_at IS NULL
-  `,
-    [user.id],
-  );
+  `;
 
-  // Checker queue count (drafts awaiting user as checker)
-  const checkerCountResult = await query(
-    `
+  const checkerCountQuery = `
     SELECT COUNT(*) as count
     FROM documents
     WHERE checker_id = $1 AND status = 'draft' AND review_stage = 'checker' AND deleted_at IS NULL
-  `,
-    [user.id],
-  );
+  `;
 
-  // Dept documents counts (where user is checker OR dept manager, and passed_checker is true)
-  const deptCountsResult = await query(
-    `
+  const deptCountsQuery = `
     SELECT
       COUNT(DISTINCT d.id) as total,
       COUNT(DISTINCT d.id) FILTER (WHERE d.status = 'pending') as pending,
@@ -398,9 +390,15 @@ export async function getDocumentStats(user: AuthUser) {
     WHERE (d.checker_id = $1 OR dep.manager_id = $1)
       AND d.status IN ('pending', 'approved', 'rejected', 'canceled')
       AND d.deleted_at IS NULL
-  `,
-    [user.id],
-  );
+  `;
+
+  // Execute independent count queries concurrently
+  const [myCountsResult, checkerCountResult, deptCountsResult] =
+    await Promise.all([
+      query(myCountsQuery, [user.id]),
+      query(checkerCountQuery, [user.id]),
+      query(deptCountsQuery, [user.id]),
+    ]);
 
   const checkerDraft = parseInt(checkerCountResult.rows[0].count, 10);
   const deptPending = parseInt(deptCountsResult.rows[0].pending || "0", 10);
@@ -452,9 +450,7 @@ export async function getDocumentDetail(documentId: number, user: AuthUser) {
   );
 
   if (docResult.rowCount === 0) {
-    const error = new Error("Dokumen tidak ditemukan atau sudah dihapus.");
-    (error as any).status = 404;
-    throw error;
+    throw new NotFoundError("Dokumen tidak ditemukan atau sudah dihapus.");
   }
 
   const doc = docResult.rows[0];
@@ -503,20 +499,21 @@ export async function getDocumentDetail(documentId: number, user: AuthUser) {
   // If document is in draft, only Applicant and Checker can see it
   if (doc.status === "draft") {
     if (!isApplicant && !isChecker) {
-      const error = new Error(
+      throw new ForbiddenError(
         "Anda tidak memiliki hak akses untuk melihat dokumen ini.",
       );
-      (error as any).status = 403;
-      throw error;
     }
   } else {
     // If pending/approved/rejected/canceled: applicant, checker, target dept manager, or applicant's dept manager can see
-    if (!isApplicant && !isChecker && !isDeptManager && !isApplicantDeptManager) {
-      const error = new Error(
+    if (
+      !isApplicant &&
+      !isChecker &&
+      !isDeptManager &&
+      !isApplicantDeptManager
+    ) {
+      throw new ForbiddenError(
         "Anda tidak memiliki hak akses untuk melihat dokumen ini.",
       );
-      (error as any).status = 403;
-      throw error;
     }
   }
 
@@ -601,38 +598,12 @@ export async function getDocumentDetail(documentId: number, user: AuthUser) {
     ]);
 
   // 8. Compute Allowed Actions
-  const isAssistant = user.role === "assistant";
-  const canEdit =
-    isAssistant &&
-    isApplicant &&
-    doc.status === "draft" &&
-    doc.review_stage === "applicant";
-  const canSubmit =
-    canEdit &&
-    intendedDepartments.length >= 1 &&
-    (versionsResult.rowCount || 0) > 0;
-  const canDelete = isAssistant && isApplicant && doc.status === "draft";
-  const canCancel = isAssistant && isApplicant && doc.status === "pending";
-  const canCheckerDecide =
-    isChecker && doc.status === "draft" && doc.review_stage === "checker";
-  const userManagedDept = intendedDepartments.find(
-    (d) => Number(d.manager_id) === user.id && d.passed_checker,
-  );
-  const canDeptDecide = doc.status === "pending" && !!userManagedDept;
-
-  // Hanya Manager atau Checker dari departemen pemilik/pembuat dokumen yang boleh menambah departemen tujuan saat pending
-  const isOwnerDeptManager =
-    (user.role === "dept_manager" || isChecker) &&
-    Number(user.department_id) === Number(doc.applicant_department_id);
-
-  const canAddDept = doc.status === "pending" && isOwnerDeptManager;
-  const canRespond =
-    (doc.status === "pending" &&
-      (isApplicant || isDeptManager || isOwnerDeptManager)) ||
-    (doc.status === "draft" && doc.review_stage === "checker" && isChecker);
-  const canPrint = ["pending", "approved", "rejected", "canceled"].includes(
-    doc.status,
-  );
+  const allowedActions = computeAllowedActions({
+    user,
+    doc,
+    intendedDepartments,
+    hasVersions: (versionsResult.rowCount || 0) > 0,
+  });
 
   return {
     document: {
@@ -657,21 +628,6 @@ export async function getDocumentDetail(documentId: number, user: AuthUser) {
     responses: responsesResult.rows,
     decisionHistory: decisionHistoryResult.rows,
     logs: logsResult.rows,
-    allowedActions: {
-      can_create: isAssistant,
-      can_edit: canEdit,
-      can_submit: canSubmit,
-      can_delete: canDelete,
-      can_cancel: canCancel,
-      can_checker_decide: canCheckerDecide,
-      can_dept_decide: canDeptDecide,
-      managed_department_id: userManagedDept
-        ? Number(userManagedDept.department_id)
-        : null,
-      can_add_dept: canAddDept,
-      can_respond: canRespond,
-      can_print: canPrint,
-      is_checker_dept_conflict: isChecker && isDeptManager,
-    },
+    allowedActions,
   };
 }

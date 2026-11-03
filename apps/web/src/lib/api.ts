@@ -133,7 +133,10 @@ export const api = {
       if (params.date_from) query.set("date_from", params.date_from);
       if (params.date_to) query.set("date_to", params.date_to);
       if (params.applicant_department_id)
-        query.set("applicant_department_id", String(params.applicant_department_id));
+        query.set(
+          "applicant_department_id",
+          String(params.applicant_department_id),
+        );
       if (params.scope) query.set("scope", params.scope);
       if (params.page) query.set("page", String(params.page));
       if (params.limit) query.set("limit", String(params.limit));

@@ -1,5 +1,11 @@
 import { withTransaction } from "../../db";
 import { AuthUser } from "../../middleware/auth";
+import {
+  NotFoundError,
+  ForbiddenError,
+  BadRequestError,
+  VersionConflictError,
+} from "../../middleware/errors";
 
 export async function checkerDecide(
   documentId: number,
@@ -9,26 +15,21 @@ export async function checkerDecide(
   expectedVersion?: number,
 ) {
   return await withTransaction(async (client) => {
-    const docCheck = await client.query(
-      `SELECT * FROM documents WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`,
-      [documentId],
-    );
+    if (expectedVersion !== undefined) {
+      const docCheck = await client.query(
+        `SELECT version FROM documents WHERE id = $1 AND deleted_at IS NULL`,
+        [documentId],
+      );
 
-    if (docCheck.rowCount === 0) {
-      const error = new Error("Dokumen tidak ditemukan.");
-      (error as any).status = 404;
-      throw error;
-    }
+      if (docCheck.rowCount === 0) {
+        throw new NotFoundError("Dokumen tidak ditemukan.");
+      }
 
-    const doc = docCheck.rows[0];
-    if (
-      expectedVersion !== undefined &&
-      Number(doc.version) !== expectedVersion
-    ) {
-      const error = new Error("Dokumen telah dimodifikasi oleh aksi lain.");
-      (error as any).code = "VERSION_CONFLICT";
-      (error as any).status = 409;
-      throw error;
+      if (Number(docCheck.rows[0].version) !== expectedVersion) {
+        throw new VersionConflictError(
+          "Dokumen telah dimodifikasi oleh aksi lain.",
+        );
+      }
     }
 
     const result = await client.query(
@@ -55,9 +56,7 @@ export async function checkerComment(
   body: string,
 ) {
   if (!body || body.trim().length === 0) {
-    const error = new Error("Komentar tidak boleh kosong.");
-    (error as any).status = 400;
-    throw error;
+    throw new BadRequestError("Komentar tidak boleh kosong.");
   }
 
   return await withTransaction(async (client) => {
@@ -78,26 +77,21 @@ export async function setDepartmentDecision(
   expectedVersion?: number,
 ) {
   return await withTransaction(async (client) => {
-    const docCheck = await client.query(
-      `SELECT * FROM documents WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`,
-      [documentId],
-    );
+    if (expectedVersion !== undefined) {
+      const docCheck = await client.query(
+        `SELECT version FROM documents WHERE id = $1 AND deleted_at IS NULL`,
+        [documentId],
+      );
 
-    if (docCheck.rowCount === 0) {
-      const error = new Error("Dokumen tidak ditemukan.");
-      (error as any).status = 404;
-      throw error;
-    }
+      if (docCheck.rowCount === 0) {
+        throw new NotFoundError("Dokumen tidak ditemukan.");
+      }
 
-    const doc = docCheck.rows[0];
-    if (
-      expectedVersion !== undefined &&
-      Number(doc.version) !== expectedVersion
-    ) {
-      const error = new Error("Dokumen telah dimodifikasi oleh aksi lain.");
-      (error as any).code = "VERSION_CONFLICT";
-      (error as any).status = 409;
-      throw error;
+      if (Number(docCheck.rows[0].version) !== expectedVersion) {
+        throw new VersionConflictError(
+          "Dokumen telah dimodifikasi oleh aksi lain.",
+        );
+      }
     }
 
     const result = await client.query(
@@ -121,17 +115,15 @@ export async function addDepartmentPending(
 ) {
   return await withTransaction(async (client) => {
     const docCheck = await client.query(
-      `SELECT d.*, app.department_id as applicant_department_id
+      `SELECT d.checker_id, d.status, d.version, app.department_id as applicant_department_id
        FROM documents d
        JOIN users app ON app.id = d.applicant_id
-       WHERE d.id = $1 AND d.deleted_at IS NULL FOR UPDATE`,
+       WHERE d.id = $1 AND d.deleted_at IS NULL`,
       [documentId],
     );
 
     if (docCheck.rowCount === 0) {
-      const error = new Error("Dokumen tidak ditemukan.");
-      (error as any).status = 404;
-      throw error;
+      throw new NotFoundError("Dokumen tidak ditemukan.");
     }
 
     const doc = docCheck.rows[0];
@@ -142,27 +134,22 @@ export async function addDepartmentPending(
       Number(user.department_id) === Number(doc.applicant_department_id);
 
     if (!isOwnerDeptManager) {
-      const error = new Error(
+      throw new ForbiddenError(
         "Akses ditolak. Hanya Manajer dari departemen pemilik dokumen yang dapat menambahkan departemen tujuan.",
       );
-      (error as any).status = 403;
-      throw error;
     }
 
     if (doc.status !== "pending") {
-      const error = new Error("Dokumen tidak berstatus pending.");
-      (error as any).status = 400;
-      throw error;
+      throw new BadRequestError("Dokumen tidak berstatus pending.");
     }
 
     if (
       expectedVersion !== undefined &&
       Number(doc.version) !== expectedVersion
     ) {
-      const error = new Error("Dokumen telah dimodifikasi oleh aksi lain.");
-      (error as any).code = "VERSION_CONFLICT";
-      (error as any).status = 409;
-      throw error;
+      throw new VersionConflictError(
+        "Dokumen telah dimodifikasi oleh aksi lain.",
+      );
     }
 
     await client.query(`SELECT sp_add_department($1, $2, $3)`, [
@@ -184,9 +171,7 @@ export async function deptResponse(
   body: string,
 ) {
   if (!body || body.trim().length === 0) {
-    const error = new Error("Isi respon tidak boleh kosong.");
-    (error as any).status = 400;
-    throw error;
+    throw new BadRequestError("Isi respon tidak boleh kosong.");
   }
 
   return await withTransaction(async (client) => {

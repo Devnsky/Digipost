@@ -1,10 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { api } from "../../lib/api";
-import {
-  DocumentListItem,
-  DashboardStats,
-  Department,
-} from "../../lib/types";
+import { DocumentListItem, DashboardStats, Department } from "../../lib/types";
 import { StatusBadge } from "../../components/StatusBadge";
 import {
   Search,

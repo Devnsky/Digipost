@@ -36,7 +36,7 @@ const rawDatabaseUrl =
 
 if (!rawDatabaseUrl || rawDatabaseUrl.trim() === "") {
   fatalConfigError(
-    `${env === "test" ? "TEST_DATABASE_URL atau DATABASE_URL" : "DATABASE_URL"} wajib disetel pada environment (.env) dan tidak boleh kosong!`
+    `${env === "test" ? "TEST_DATABASE_URL atau DATABASE_URL" : "DATABASE_URL"} wajib disetel pada environment (.env) dan tidak boleh kosong!`,
   );
 }
 const databaseUrl: string = rawDatabaseUrl.trim();
@@ -45,14 +45,14 @@ const databaseUrl: string = rawDatabaseUrl.trim();
 const rawCookieSecret = process.env.COOKIE_SECRET;
 if (!rawCookieSecret || rawCookieSecret.trim() === "") {
   fatalConfigError(
-    "COOKIE_SECRET wajib disetel pada environment (.env) dan tidak boleh kosong!"
+    "COOKIE_SECRET wajib disetel pada environment (.env) dan tidak boleh kosong!",
   );
 }
 const cookieSecret: string = rawCookieSecret.trim();
 
 if (env === "production" && cookieSecret.length < 32) {
   fatalConfigError(
-    "COOKIE_SECRET wajib memiliki panjang minimal 32 karakter pada lingkungan production demi keamanan enkripsi cookie!"
+    "COOKIE_SECRET wajib memiliki panjang minimal 32 karakter pada lingkungan production demi keamanan enkripsi cookie!",
   );
 }
 
@@ -61,7 +61,7 @@ let frontendUrl = process.env.FRONTEND_URL;
 if (!frontendUrl || frontendUrl.trim() === "") {
   if (env === "production") {
     fatalConfigError(
-      "FRONTEND_URL wajib disetel pada lingkungan production demi membatasi akses CORS!"
+      "FRONTEND_URL wajib disetel pada lingkungan production demi membatasi akses CORS!",
     );
   }
   frontendUrl = "http://localhost:5173";

@@ -3,6 +3,11 @@ import argon2 from "argon2";
 import { query } from "../../db";
 import { config } from "../../config";
 import nodemailer from "nodemailer";
+import {
+  UnauthorizedError,
+  NotFoundError,
+  BadRequestError,
+} from "../../middleware/errors";
 
 // Dummy hash for uniform timing on non-existent accounts
 const DUMMY_HASH =
@@ -84,15 +89,13 @@ export async function login(
   const attemptStatus = attemptResult.rows[0]?.result;
 
   if (attemptStatus !== "ok") {
-    const error = new Error("Username atau password salah.");
-    (error as any).status = 401;
-    (error as any).code =
+    const code =
       attemptStatus === "locked"
         ? "ACCOUNT_LOCKED"
         : attemptStatus === "inactive"
           ? "ACCOUNT_INACTIVE"
           : "INVALID_CREDENTIALS";
-    throw error;
+    throw new UnauthorizedError("Username atau password salah.", code);
   }
 
   // 3. Create cryptographically secure random session token
@@ -139,26 +142,24 @@ export async function changePassword(
     [userId],
   );
   if (userResult.rowCount === 0) {
-    const error = new Error("Pengguna tidak ditemukan atau tidak aktif.");
-    (error as any).status = 404;
-    throw error;
+    throw new NotFoundError("Pengguna tidak ditemukan atau tidak aktif.");
   }
 
   const user = userResult.rows[0];
   const isMatch = await argon2.verify(user.password_hash, oldPass);
   if (!isMatch) {
-    const error = new Error("Password lama tidak cocok.");
-    (error as any).status = 400;
-    (error as any).code = "INVALID_OLD_PASSWORD";
-    throw error;
+    throw new BadRequestError(
+      "Password lama tidak cocok.",
+      "INVALID_OLD_PASSWORD",
+    );
   }
 
   const policy = validatePasswordPolicy(newPass, user.username);
   if (!policy.valid) {
-    const error = new Error(policy.message);
-    (error as any).status = 400;
-    (error as any).code = "PASSWORD_POLICY_VIOLATION";
-    throw error;
+    throw new BadRequestError(
+      policy.message || "Password tidak memenuhi kebijakan.",
+      "PASSWORD_POLICY_VIOLATION",
+    );
   }
 
   const newHash = await argon2.hash(newPass, {
@@ -241,19 +242,19 @@ export async function resetPassword(rawToken: string, newPass: string) {
   );
 
   if (tokenRecord.rowCount === 0) {
-    const error = new Error("Token reset tidak valid atau sudah kedaluwarsa.");
-    (error as any).status = 400;
-    (error as any).code = "INVALID_RESET_TOKEN";
-    throw error;
+    throw new BadRequestError(
+      "Token reset tidak valid atau sudah kedaluwarsa.",
+      "INVALID_RESET_TOKEN",
+    );
   }
 
   const username = tokenRecord.rows[0].username;
   const policy = validatePasswordPolicy(newPass, username);
   if (!policy.valid) {
-    const error = new Error(policy.message);
-    (error as any).status = 400;
-    (error as any).code = "PASSWORD_POLICY_VIOLATION";
-    throw error;
+    throw new BadRequestError(
+      policy.message || "Password tidak memenuhi kebijakan.",
+      "PASSWORD_POLICY_VIOLATION",
+    );
   }
 
   const newHash = await argon2.hash(newPass, {

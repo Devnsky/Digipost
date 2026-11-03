@@ -34,7 +34,8 @@ export const RequestRevisionModal: React.FC<RequestRevisionModalProps> = ({
 
         <div>
           <label className="block text-xs font-semibold text-[#212634] mb-1.5">
-            Catatan Revisi untuk Pemohon <span className="text-rose-500">*</span>
+            Catatan Revisi untuk Pemohon{" "}
+            <span className="text-rose-500">*</span>
           </label>
           <textarea
             required
@@ -66,4 +67,3 @@ export const RequestRevisionModal: React.FC<RequestRevisionModalProps> = ({
     </Modal>
   );
 };
-

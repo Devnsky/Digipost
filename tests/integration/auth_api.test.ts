@@ -24,9 +24,7 @@ describe("Auth & Session API Integration Tests", () => {
 
   function getSessionCookie(res: any): string {
     const cookies = res.headers["set-cookie"] || [];
-    return (
-      cookies.find((c: string) => c.startsWith("digipost_session=")) || ""
-    );
+    return cookies.find((c: string) => c.startsWith("digipost_session=")) || "";
   }
 
   it("Login sukses menghasilkan cookie HttpOnly dan sesi valid", async () => {
@@ -140,9 +138,7 @@ describe("Auth & Session API Integration Tests", () => {
     expect(logoutRes.status).toBe(200);
 
     // Call /me after logout should return 401
-    const meRes = await request(app)
-      .get("/api/auth/me")
-      .set("Cookie", cookie);
+    const meRes = await request(app).get("/api/auth/me").set("Cookie", cookie);
 
     expect(meRes.status).toBe(401);
   });

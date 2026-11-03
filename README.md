@@ -9,15 +9,15 @@ Sistem ini menerapkan mekanisme **Maker-Checker** (verifikasi berjenjang oleh at
 ## ✨ Fitur Utama
 
 - **Maker-Checker Workflow:**
-  - Pemohon (*Applicant*) membuat draf dokumen dan menentukan departemen tujuan.
-  - Atasan langsung (*Checker*) memverifikasi draf sebelum diteruskan (dapat menyetujui & meneruskan, meminta revisi, atau menolak).
+  - Pemohon (_Applicant_) membuat draf dokumen dan menentukan departemen tujuan.
+  - Atasan langsung (_Checker_) memverifikasi draf sebelum diteruskan (dapat menyetujui & meneruskan, meminta revisi, atau menolak).
 - **Multi-Department Approval:**
   - Dokumen dievaluasi secara paralel oleh para manajer dari departemen tujuan terkait.
   - Evaluasi status akhir bersifat atomik berdasarkan konsensus seluruh departemen.
 - **Pengelolaan Berkas & Pratinjau:**
   - Pengelolaan multi-versi berkas lampiran dengan pencatatan checksum SHA-256.
   - Pratinjau langsung di dalam aplikasi untuk format PDF dan dokumen Microsoft Word (.docx).
-  - Ekspor/unduh berkas dengan stempel cap status resmi (*watermark stamp*: Approved, Rejected, Canceled).
+  - Ekspor/unduh berkas dengan stempel cap status resmi (_watermark stamp_: Approved, Rejected, Canceled).
 - **Keamanan & Jejak Audit (Audit Trail):**
   - Pencatatan seluruh mutasi status, tanggapan, dan riwayat keputusan secara kronologis.
   - Autentikasi berbasis cookie `HttpOnly` dengan enkripsi password Argon2id dan proteksi brute-force.
@@ -49,8 +49,10 @@ docker compose up --build -d
 ```
 
 Akses layanan di peramban:
+
 - **Frontend Web:** `http://localhost:3000`
-- **Backend API:** `http://localhost:4000/api/health`
+- **Backend API Health:** `http://localhost:4000/api/health`
+- **Dokumentasi API (Swagger UI):** `http://localhost:4000/api/docs` (Spesifikasi JSON: `/api/docs.json`)
 - **Mailpit (Webmail Pengujian):** `http://localhost:8025`
 
 ---
@@ -74,23 +76,71 @@ npm run seed
 npm run dev
 ```
 
-Buka antarmuka web di: **`http://localhost:5173`** (API berjalan di port `4000`).
+Buka antarmuka web di: **`http://localhost:5173`** (API berjalan di port `4000`, Swagger UI interaktif di **`http://localhost:4000/api/docs`**).
 
 ---
 
 ## 🧪 Pengujian & Kualitas Kode
 
+Sistem pengujian dipisahkan menjadi unit testing mandiri dan integration testing relasional:
+
 ```bash
-npm test          # Menjalankan 44 pengujian integrasi otomatis
-npm run typecheck  # Validasi tipe statis TypeScript (API & Web)
-npm run lint       # Audit standar kepatuhan kode (ESLint)
+# Menjalankan unit test suite mandiri (in-memory, 85 unit tests, <3.5 detik, tanpa DB fisik)
+npm test
+npm run test:unit
+
+# Menjalankan pengujian integrasi database dengan PostgreSQL (TC-01 s.d. TC-26)
+npm run test:integration
+
+# Menjalankan seluruh pengujian (unit + integrasi)
+npm run test:all
+
+# Pengujian konkurensi mutasi bersamaan
+npm run test:concurrency
+
+# Benchmark performa 100.000 dokumen terindeks
+npm run test:benchmark
+
+# Validasi tipe statis TypeScript (API & Web)
+npm run typecheck
+
+# Audit kepatuhan standar linter (ESLint + React Hooks)
+npm run lint
+
+# Format otomatis seluruh codebase (Prettier)
+npm run format
 ```
 
 ---
 
-## 📖 Dokumentasi Lengkap
+## 🏗️ Struktur Monorepo & Arsitektur
 
-Spesifikasi teknis dan catatan keputusan arsitektur dapat diakses pada folder `docs/`:
-- [Requirements Traceability Matrix (RTM)](docs/requirements-traceability.md): Pemetaan kebutuhan fungsional dan kasus uji SRS.
-- [Catatan Keputusan Arsitektur](docs/decisions.md): Dokumentasi keputusan teknis dan penyelesaian ambiguitas bisnis.
-- [Catatan Riwayat Progres](docs/progress.md): Log pengerjaan dan pencapaian implementasi.
+```text
+Digipost/
+├── apps/
+│   ├── api/                     # Backend Express + TypeScript
+│   │   ├── src/
+│   │   │   ├── config/          # Validasi environment fail-fast & konfigurasi
+│   │   │   ├── db/              # Koneksi node-pg & manajemen transaksi
+│   │   │   ├── middleware/      # Keamanan (Rate Limiter, CORS, Session Cookie Auth)
+│   │   │   └── modules/         # Domain modules (auth, departments, documents, files, notifications, workflow)
+│   │   └── package.json
+│   └── web/                     # Frontend React 18 + Vite + Tailwind CSS
+│       ├── src/
+│       │   ├── app/             # Routing & Root App Component
+│       │   ├── components/      # Reusable UI components (AppShell, Modal, StatusBadge)
+│       │   ├── features/        # Feature screens (auth, dashboard, documents, notifications, account)
+│       │   └── lib/             # API client, context providers, formatters, types
+│       └── package.json
+├── database/                    # Skema PostgreSQL & Runner
+│   ├── migrations/              # SQL migrations (001 s.d. 004)
+│   └── runner.ts                # TypeScript migration & seed runner
+├── tests/                       # Test suites
+│   ├── unit/                    # Pure in-memory unit tests (Fast, no DB)
+│   └── integration/             # Relational PostgreSQL integration tests
+├── .github/workflows/ci.yml     # Automated CI pipeline (Lint, Typecheck, Unit, Integration, Build)
+├── Dockerfile                   # Multi-stage production container build
+└── docker-compose.yml           # Local production stack (Postgres, Mailpit, API, Web)
+```
+
+---

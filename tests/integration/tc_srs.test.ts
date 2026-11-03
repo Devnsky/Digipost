@@ -47,14 +47,17 @@ describe("TC-01 s.d. TC-26: SRS Verifikasi Skema dan Alur Approval", () => {
     // 3: Finance Manager (dewi)
     // 4: Lead IT / Checker (andi) -> manager: budi (1)
     // 5: Staff IT / Assistant (ani) -> manager: andi (4)
-    await pool.query(`
+    await pool.query(
+      `
       INSERT INTO users (employee_no, full_name, email, department_id, manager_id, is_active, username, password_hash) VALUES
-        ('EMP001', 'Budi Santoso', 'budi@test.local', 1, NULL, TRUE, 'budi', '${passHash}'),
-        ('EMP002', 'Siti Rahma', 'siti@test.local', 2, NULL, TRUE, 'siti', '${passHash}'),
-        ('EMP003', 'Dewi Lestari', 'dewi@test.local', 3, NULL, TRUE, 'dewi', '${passHash}'),
-        ('EMP004', 'Andi Pratama', 'andi@test.local', 1, 1, TRUE, 'andi', '${passHash}'),
-        ('EMP005', 'Ani Wijaya', 'ani@test.local', 1, 4, TRUE, 'ani', '${passHash}');
-    `);
+        ('EMP001', 'Budi Santoso', 'budi@test.local', 1, NULL, TRUE, 'budi', $1),
+        ('EMP002', 'Siti Rahma', 'siti@test.local', 2, NULL, TRUE, 'siti', $1),
+        ('EMP003', 'Dewi Lestari', 'dewi@test.local', 3, NULL, TRUE, 'dewi', $1),
+        ('EMP004', 'Andi Pratama', 'andi@test.local', 1, 1, TRUE, 'andi', $1),
+        ('EMP005', 'Ani Wijaya', 'ani@test.local', 1, 4, TRUE, 'ani', $1);
+    `,
+      [passHash],
+    );
 
     // Update departments manager_id
     await pool.query("UPDATE departments SET manager_id = 1 WHERE code = $1", [
@@ -691,10 +694,13 @@ describe("TC-01 s.d. TC-26: SRS Verifikasi Skema dan Alur Approval", () => {
       type: argon2.argon2id,
     });
     await expect(
-      pool.query(`
+      pool.query(
+        `
         INSERT INTO users (employee_no, full_name, email, username, password_hash)
-        VALUES ('EMP999', 'Budi Duplicate', 'budi_dup@test.local', 'BUDI', '${passHash}')
-      `),
+        VALUES ('EMP999', 'Budi Duplicate', 'budi_dup@test.local', 'BUDI', $1)
+      `,
+        [passHash],
+      ),
     ).rejects.toThrow();
   });
 });

@@ -1,24 +1,10 @@
 import { Router, Request, Response, NextFunction } from "express";
 import fs from "fs";
 import * as filesService from "./files.service";
-import * as departmentsService from "../departments/departments.service";
 import { authenticate } from "../../middleware/auth";
 
 const router = Router();
-router.use(authenticate);
-
-// GET /api/departments - Master list for dropdowns (delegates to departmentsService)
-router.get(
-  "/departments",
-  async (_req: Request, res: Response, next: NextFunction) => {
-    try {
-      const departments = await departmentsService.listActiveDepartments();
-      res.json(departments);
-    } catch (err) {
-      next(err);
-    }
-  },
-);
+router.use("/documents/:id/files", authenticate);
 
 // GET /api/documents/:id/files/:versionId/download - Download original file
 router.get(
@@ -42,7 +28,15 @@ router.get(
         "Content-Disposition",
         `attachment; filename="${encodeURIComponent(version.file_name)}"`,
       );
-      fs.createReadStream(version.file_path).pipe(res);
+      const stream = fs.createReadStream(version.file_path);
+      stream.on("error", (streamErr) => {
+        if (!res.headersSent) {
+          next(streamErr);
+        } else {
+          console.error("[Download Stream Error]:", streamErr);
+        }
+      });
+      stream.pipe(res);
     } catch (err) {
       next(err);
     }
@@ -84,7 +78,15 @@ router.get(
           );
           res.end(Buffer.from(stampedBytes));
         } else {
-          fs.createReadStream(version.file_path).pipe(res);
+          const stream = fs.createReadStream(version.file_path);
+          stream.on("error", (streamErr) => {
+            if (!res.headersSent) {
+              next(streamErr);
+            } else {
+              console.error("[Preview Stream Error]:", streamErr);
+            }
+          });
+          stream.pipe(res);
         }
       } else if (ext === "docx" || ext === "doc") {
         try {

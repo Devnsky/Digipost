@@ -1,6 +1,9 @@
 import { Router, Request, Response, NextFunction } from "express";
 import multer from "multer";
 import { z } from "zod";
+import fs from "fs";
+import path from "path";
+import crypto from "crypto";
 import * as docService from "./documents.service";
 import {
   authenticate,
@@ -10,33 +13,9 @@ import {
 } from "../../middleware/auth";
 import { config } from "../../config";
 
+import { validateFileMagicBytes } from "../files/file-validation";
+
 const router = Router();
-
-function validateFileMagicBytes(buffer: Buffer): boolean {
-  if (!buffer || buffer.length < 4) return false;
-  // PDF header: %PDF- (0x25, 0x50, 0x44, 0x46)
-  const isPdf =
-    buffer[0] === 0x25 &&
-    buffer[1] === 0x50 &&
-    buffer[2] === 0x44 &&
-    buffer[3] === 0x46;
-
-  // DOCX (ZIP format) header: PK\x03\x04 (0x50, 0x4B, 0x03, 0x04)
-  const isDocx =
-    buffer[0] === 0x50 &&
-    buffer[1] === 0x4b &&
-    buffer[2] === 0x03 &&
-    buffer[3] === 0x04;
-
-  // Legacy DOC header: 0xD0, 0xCF, 0x11, 0xE0
-  const isDoc =
-    buffer[0] === 0xd0 &&
-    buffer[1] === 0xcf &&
-    buffer[2] === 0x11 &&
-    buffer[3] === 0xe0;
-
-  return isPdf || isDocx || isDoc;
-}
 
 const createDocumentSchema = z.object({
   title: z
@@ -68,8 +47,24 @@ const updateDocumentSchema = z.object({
   description: z.string().trim().max(2000).optional().default(""),
   expected_version: z.coerce.number().optional(),
 });
+
+const tempUploadDir = path.join(config.uploadDir, ".tmp");
+if (!fs.existsSync(tempUploadDir)) {
+  fs.mkdirSync(tempUploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, tempUploadDir);
+  },
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname) || ".bin";
+    cb(null, `${crypto.randomUUID()}${ext}`);
+  },
+});
+
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage,
   limits: {
     fileSize: config.maxFileSizeMb * 1024 * 1024,
   },
@@ -203,7 +198,15 @@ router.post(
         return;
       }
 
-      if (!validateFileMagicBytes(req.file.buffer)) {
+      const isValidSignature = await validateFileMagicBytes(req.file);
+      if (!isValidSignature) {
+        if (req.file.path && fs.existsSync(req.file.path)) {
+          try {
+            await fs.promises.unlink(req.file.path);
+          } catch {
+            // ignore
+          }
+        }
         res.status(400).json({
           error:
             "Format isi berkas tidak valid atau rusak. Harap unggah berkas PDF atau DOCX yang valid.",
@@ -212,8 +215,9 @@ router.post(
         return;
       }
 
-      const { title, description, department_ids } =
-        createDocumentSchema.parse(req.body);
+      const { title, description, department_ids } = createDocumentSchema.parse(
+        req.body,
+      );
 
       const created = await docService.createDocument(
         req.user!,
@@ -270,7 +274,15 @@ router.post(
         return;
       }
 
-      if (!validateFileMagicBytes(req.file.buffer)) {
+      const isValidSignature = await validateFileMagicBytes(req.file);
+      if (!isValidSignature) {
+        if (req.file.path && fs.existsSync(req.file.path)) {
+          try {
+            await fs.promises.unlink(req.file.path);
+          } catch {
+            // ignore
+          }
+        }
         res.status(400).json({
           error:
             "Format isi berkas tidak valid atau rusak. Harap unggah berkas PDF atau DOCX yang valid.",

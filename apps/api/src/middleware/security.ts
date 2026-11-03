@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { config } from "../config";
+import { AppError } from "./errors";
 
 // In-memory rate limiter per IP for sensitive auth routes
 interface RateLimitRecord {
@@ -7,17 +8,42 @@ interface RateLimitRecord {
   resetAt: number;
 }
 const rateLimitMap = new Map<string, RateLimitRecord>();
+const MAX_RATE_LIMIT_ENTRIES = 5000;
+
+export function pruneRateLimitMap(
+  now = Date.now(),
+  maxEntries = MAX_RATE_LIMIT_ENTRIES,
+): void {
+  // 1. Evict expired entries
+  for (const [key, value] of rateLimitMap.entries()) {
+    if (now > value.resetAt) {
+      rateLimitMap.delete(key);
+    }
+  }
+  // 2. FIFO eviction if map still at/over capacity (prevent unbounded memory DoS)
+  while (rateLimitMap.size >= maxEntries) {
+    const oldestKey = rateLimitMap.keys().next().value;
+    if (oldestKey === undefined) break;
+    rateLimitMap.delete(oldestKey);
+  }
+}
+
+export function _getRateLimitMapSize(): number {
+  return rateLimitMap.size;
+}
+
+export function _clearRateLimitMap(): void {
+  rateLimitMap.clear();
+}
 
 // Periodic cleanup of expired rate limit entries every 10 minutes
 if (typeof setInterval !== "undefined") {
-  const cleanupTimer = setInterval(() => {
-    const now = Date.now();
-    for (const [key, value] of rateLimitMap.entries()) {
-      if (now > value.resetAt) {
-        rateLimitMap.delete(key);
-      }
-    }
-  }, 10 * 60 * 1000);
+  const cleanupTimer = setInterval(
+    () => {
+      pruneRateLimitMap(Date.now(), MAX_RATE_LIMIT_ENTRIES);
+    },
+    10 * 60 * 1000,
+  );
   if (cleanupTimer.unref) {
     cleanupTimer.unref(); // Don't hold Node process open in tests
   }
@@ -25,8 +51,8 @@ if (typeof setInterval !== "undefined") {
 
 export function authRateLimiter(maxAttempts = 15, windowMinutes = 15) {
   return (req: Request, res: Response, next: NextFunction): void => {
-    // In test environment, allow bypassing rate limit
-    if (config.env === "test") {
+    // In test environment, allow bypassing rate limit unless explicitly tested
+    if (config.env === "test" && !req.headers["x-test-rate-limit"]) {
       return next();
     }
 
@@ -34,17 +60,11 @@ export function authRateLimiter(maxAttempts = 15, windowMinutes = 15) {
     const now = Date.now();
     const windowMs = windowMinutes * 60 * 1000;
 
-    // Preventive sweep if map grows abnormally large
-    if (rateLimitMap.size > 5000) {
-      for (const [key, val] of rateLimitMap.entries()) {
-        if (now > val.resetAt) {
-          rateLimitMap.delete(key);
-        }
-      }
-    }
-
     const record = rateLimitMap.get(ip);
     if (!record || now > record.resetAt) {
+      if (rateLimitMap.size >= MAX_RATE_LIMIT_ENTRIES) {
+        pruneRateLimitMap(now, MAX_RATE_LIMIT_ENTRIES);
+      }
       rateLimitMap.set(ip, { count: 1, resetAt: now + windowMs });
       return next();
     }
@@ -127,7 +147,7 @@ export function csrfProtection(
         });
         return;
       }
-    } else if (config.env === "production" && !secFetchSite) {
+    } else if (config.env !== "test" && !secFetchSite) {
       res.status(403).json({
         error: "Header asal (Origin/Referer) wajib disertakan.",
         code: "CSRF_ORIGIN_REQUIRED",
@@ -146,6 +166,15 @@ export function errorHandler(
   res: Response,
   _next: NextFunction,
 ): void {
+  // Handle typed application domain errors
+  if (err instanceof AppError) {
+    res.status(err.statusCode).json({
+      error: err.message,
+      code: err.code,
+    });
+    return;
+  }
+
   const status = err.status || err.statusCode || 500;
   const message = err.message || "Terjadi kesalahan pada sistem.";
 
@@ -171,6 +200,14 @@ export function errorHandler(
         error: message,
         code: "CONCURRENCY_CONFLICT",
         hint: "Data telah diperbarui oleh pengguna lain. Silakan muat ulang halaman.",
+      });
+      return;
+    }
+    // Resource not found in stored procedure
+    if (message.includes("tidak ditemukan")) {
+      res.status(404).json({
+        error: message,
+        code: "NOT_FOUND",
       });
       return;
     }

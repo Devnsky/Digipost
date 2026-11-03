@@ -13,19 +13,39 @@ import { notificationRoutes } from "./modules/notifications/notifications.routes
 import { departmentRoutes } from "./modules/departments/departments.routes";
 import { fileRoutes } from "./modules/files/files.routes";
 import { csrfProtection, errorHandler } from "./middleware/security";
+import swaggerUi from "swagger-ui-express";
+import { swaggerDocument } from "./docs/swagger";
 
 export function createApp() {
   const app = express();
 
-  // Trust proxy for accurate req.ip & https detection across multi-hop reverse proxies (NPM / Traefik / Docker)
-  const trustProxy = process.env.TRUST_PROXY
-    ? process.env.TRUST_PROXY === "true"
-      ? true
-      : isNaN(Number(process.env.TRUST_PROXY))
-        ? process.env.TRUST_PROXY
-        : Number(process.env.TRUST_PROXY)
-    : ["loopback", "linklocal", "uniquelocal"];
-  app.set("trust proxy", trustProxy);
+  // Trust proxy for accurate req.ip & https detection across reverse proxies (NPM / Traefik / Docker)
+  // Default to RFC 1918 / loopback / link-local addresses to prevent client IP spoofing via X-Forwarded-For
+  const defaultTrustedProxies = ["loopback", "linklocal", "uniquelocal"];
+  let trustProxySetting: any = defaultTrustedProxies;
+
+  if (process.env.TRUST_PROXY) {
+    const rawTrust = process.env.TRUST_PROXY.trim();
+    if (!isNaN(Number(rawTrust))) {
+      trustProxySetting = Number(rawTrust);
+    } else if (rawTrust.includes(",")) {
+      trustProxySetting = rawTrust.split(",").map((s) => s.trim());
+    } else if (rawTrust === "true") {
+      if (config.env === "production") {
+        console.warn(
+          "⚠️ [SECURITY WARNING] TRUST_PROXY=true in production is vulnerable to IP spoofing. Falling back to local subnets (loopback, linklocal, uniquelocal).",
+        );
+        trustProxySetting = defaultTrustedProxies;
+      } else {
+        trustProxySetting = true;
+      }
+    } else if (rawTrust === "false") {
+      trustProxySetting = false;
+    } else {
+      trustProxySetting = rawTrust;
+    }
+  }
+  app.set("trust proxy", trustProxySetting);
 
   // Security headers
   app.use(
@@ -89,6 +109,20 @@ export function createApp() {
         timestamp: new Date().toISOString(),
       });
     }
+  });
+
+  // OpenAPI 3.0 / Swagger UI documentation (Public access, no authentication required)
+  app.use(
+    "/api/docs",
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerDocument, {
+      customSiteTitle: "DigiPost API Documentation",
+      customCss: ".swagger-ui .topbar { display: none }",
+    }),
+  );
+  app.get("/api/docs.json", (_req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    res.json(swaggerDocument);
   });
 
   // Mount API modules

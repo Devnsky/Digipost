@@ -7,7 +7,7 @@ import {
   Department,
   DocumentVersion,
 } from "../../lib/types";
-import { StatusBadge, DecisionBadge } from "../../components/StatusBadge";
+import { StatusBadge } from "../../components/StatusBadge";
 import { Modal } from "../../components/Modal";
 import { DocumentPreviewModal } from "./modals/DocumentPreviewModal";
 import { AddDepartmentModal } from "./modals/AddDepartmentModal";
@@ -15,27 +15,13 @@ import { CancelDocumentModal } from "./modals/CancelDocumentModal";
 import { RequestRevisionModal } from "./modals/RequestRevisionModal";
 import { ApproveForwardModal } from "./modals/ApproveForwardModal";
 import { DeptDecisionModal } from "./modals/DeptDecisionModal";
-import {
-  ArrowLeft,
-  FileText,
-  CheckCircle,
-  AlertTriangle,
-  Upload,
-  Download,
-  Eye,
-  MessageSquare,
-  Send,
-  Edit,
-  Trash2,
-  Ban,
-  RefreshCw,
-  Plus,
-  Lock,
-  X,
-  HelpCircle,
-  AlertCircle,
-  Info,
-} from "lucide-react";
+import { DocumentNoticeBanner } from "./components/DocumentNoticeBanner";
+import { DocumentInfoCard } from "./components/DocumentInfoCard";
+import { DocumentDepartmentsCard } from "./components/DocumentDepartmentsCard";
+import { DocumentDiscussionCard } from "./components/DocumentDiscussionCard";
+import { DocumentActionsCard } from "./components/DocumentActionsCard";
+import { DocumentTimelineCard } from "./components/DocumentTimelineCard";
+import { ArrowLeft, AlertTriangle, RefreshCw } from "lucide-react";
 
 interface DocumentDetailPageProps {
   documentId: number;
@@ -296,7 +282,9 @@ export const DocumentDetailPage: React.FC<DocumentDetailPageProps> = ({
       });
       setIsCheckerApproveModalOpen(false);
       await fetchDetail();
-      toast.success("Dokumen disetujui Checker dan diteruskan ke departemen tujuan.");
+      toast.success(
+        "Dokumen disetujui Checker dan diteruskan ke departemen tujuan.",
+      );
     } catch (err: any) {
       toast.error(err.message || "Gagal memproses persetujuan checker");
     } finally {
@@ -474,105 +462,6 @@ export const DocumentDetailPage: React.FC<DocumentDetailPageProps> = ({
     }
   };
 
-  // Determine Notice Banner Content & Tone matching screenshots
-  const renderNoticeBanner = () => {
-    if (doc.status === "draft") {
-      if (doc.review_stage === "checker") {
-        return (
-          <div className="bg-[#f3f4fd] border border-[#e0e2fa] p-4 rounded-xl flex items-start gap-3">
-            <Info className="w-4 h-4 text-[#555ad5] shrink-0 mt-0.5" />
-            <p className="text-xs text-[#3a3e84] leading-relaxed">
-              Dokumen sedang dalam antrean pemeriksaan atasan langsung (Checker:{" "}
-              <strong>{doc.checker_name || "Atasan"}</strong>). Anda tidak dapat
-              mengubah data hingga Checker memutuskan persetujuan atau revisi.
-            </p>
-          </div>
-        );
-      }
-      // Draft Applicant
-      const hasRevisionNote = responses.some(
-        (r) => r.type === "revision_request",
-      );
-      if (hasRevisionNote) {
-        return (
-          <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start gap-3">
-            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-800 leading-relaxed">
-              <strong>Checker meminta revisi terhadap dokumen ini.</strong>{" "}
-              Periksa catatan revisi pada thread komentar di bawah, lakukan
-              perbaikan data atau unggah berkas baru, lalu ajukan kembali ke
-              atasan.
-            </p>
-          </div>
-        );
-      }
-      return (
-        <div className="bg-[#f3f4fd] border border-[#e0e2fa] p-4 rounded-xl flex items-start gap-3">
-          <Info className="w-4 h-4 text-[#555ad5] shrink-0 mt-0.5" />
-          <p className="text-xs text-[#3a3e84] leading-relaxed">
-            Dokumen ini masih berstatus <strong>Draft (Applicant)</strong>. Anda
-            dapat memperbarui informasi atau berkas lampiran sebelum mengajukan
-            ke Checker untuk persetujuan tingkat pertama.
-          </p>
-        </div>
-      );
-    }
-
-    if (doc.status === "pending") {
-      return (
-        <div className="bg-[#f3f4fd] border border-[#e0e2fa] p-4 rounded-xl flex items-start gap-3">
-          <Info className="w-4 h-4 text-[#555ad5] shrink-0 mt-0.5" />
-          <p className="text-xs text-[#3a3e84] leading-relaxed">
-            Dokumen telah disetujui oleh Checker dan saat ini dalam tahap
-            peninjauan oleh Seluruh Departemen Tujuan. Sesuai prinsip{" "}
-            <strong>Opsi A</strong>, seluruh departemen harus menyetujui agar
-            dokumen sah.
-          </p>
-        </div>
-      );
-    }
-
-    if (doc.status === "approved") {
-      return (
-        <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl flex items-start gap-3">
-          <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-          <p className="text-xs text-emerald-800 leading-relaxed">
-            Dokumen telah <strong>Disetujui secara final</strong> oleh seluruh
-            departemen tujuan. Berkas resmi telah dicap stempel validasi sistem
-            DigiPost.
-          </p>
-        </div>
-      );
-    }
-
-    if (doc.status === "rejected") {
-      return (
-        <div className="bg-rose-50 border border-rose-200 p-4 rounded-xl flex items-start gap-3">
-          <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-          <p className="text-xs text-rose-800 leading-relaxed">
-            Pengajuan dokumen <strong>Ditolak secara final</strong> oleh salah
-            satu departemen tujuan. Seluruh proses alur persetujuan telah
-            dihentikan secara permanen.
-          </p>
-        </div>
-      );
-    }
-
-    if (doc.status === "canceled") {
-      return (
-        <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-start gap-3">
-          <Ban className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
-          <p className="text-xs text-slate-700 leading-relaxed">
-            Pengajuan dokumen telah <strong>Dibatalkan</strong> oleh pemohon.
-            Seluruh proses alur persetujuan dihentikan.
-          </p>
-        </div>
-      );
-    }
-
-    return null;
-  };
-
   // Helper for manager decision in current dept
   const myDeptObj =
     departments.find(
@@ -622,7 +511,7 @@ export const DocumentDetailPage: React.FC<DocumentDetailPageProps> = ({
       </div>
 
       {/* Notice Strip matching screenshots */}
-      {renderNoticeBanner()}
+      <DocumentNoticeBanner doc={doc} responses={responses} />
 
       {/* Role Conflict Warning Banner if detected */}
       {allowedActions.is_checker_dept_conflict && (
@@ -647,586 +536,63 @@ export const DocumentDetailPage: React.FC<DocumentDetailPageProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column (~68% on Desktop) */}
         <div className="lg:col-span-8 space-y-6">
-          {/* Card 1: Informasi Dokumen */}
-          <div className="bg-white rounded-2xl border border-[#e9ebf0] p-6 shadow-xs space-y-4">
-            <div>
-              <h2 className="text-sm font-bold text-[#212634]">
-                Informasi dokumen
-              </h2>
-              <p className="text-xs text-[#717684] mt-0.5">
-                Data pemohon, atasan pemeriksa, dan berkas lampiran
-              </p>
-            </div>
+          <DocumentInfoCard
+            doc={doc}
+            currentVersionObj={currentVersionObj}
+            allowedActions={allowedActions}
+            openPreview={openPreview}
+            onOpenUploadModal={() => setIsUploadModalOpen(true)}
+            formatDate={formatDate}
+            formatDateTime={formatDateTime}
+            formatFileSize={formatFileSize}
+          />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-              <div className="p-3.5 bg-[#fbfbfc] rounded-xl border border-[#e9ebf0]">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-[#8a90a2] block">
-                  Pemohon (Applicant)
-                </span>
-                <span className="text-xs font-bold text-[#212634] block mt-1">
-                  {doc.applicant_name}
-                </span>
-                <span className="text-[11px] text-[#717684] block mt-0.5">
-                  {doc.applicant_department_name} &middot;{" "}
-                  {doc.applicant_employee_no || "-"}
-                </span>
-              </div>
+          <DocumentDepartmentsCard
+            doc={doc}
+            departments={departments}
+            allowedActions={allowedActions}
+            onOpenAddDeptModal={() => setIsAddDeptModalOpen(true)}
+            onRemoveDraftDept={handleRemoveDraftDept}
+            formatDateTime={formatDateTime}
+          />
 
-              <div className="p-3.5 bg-[#fbfbfc] rounded-xl border border-[#e9ebf0]">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-[#8a90a2] block">
-                  Checker (Atasan Langsung)
-                </span>
-                <span className="text-xs font-bold text-[#212634] block mt-1">
-                  {doc.checker_name || "Belum Ditentukan"}
-                </span>
-                <span className="text-[11px] text-[#717684] block mt-0.5">
-                  {doc.checker_department_name || "-"}
-                </span>
-              </div>
-
-              <div className="p-3.5 bg-[#fbfbfc] rounded-xl border border-[#e9ebf0]">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-[#8a90a2] block">
-                  Tanggal Pengajuan
-                </span>
-                <span className="text-xs font-bold text-[#212634] block mt-1">
-                  {formatDateTime(doc.created_at)}
-                </span>
-                <span className="text-[11px] text-[#717684] block mt-0.5">
-                  {doc.submitted_at
-                    ? `Disubmit: ${formatDateTime(doc.submitted_at)}`
-                    : "Draft"}
-                </span>
-              </div>
-
-              <div className="p-3.5 bg-[#fbfbfc] rounded-xl border border-[#e9ebf0]">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-[#8a90a2] block">
-                  Versi Berkas Terkini
-                </span>
-                <span className="text-xs font-bold text-[#212634] block mt-1">
-                  Versi {doc.version}
-                </span>
-                <span className="text-[11px] text-[#717684] block mt-0.5">
-                  {currentVersionObj?.file_name || "Tidak ada berkas"}
-                </span>
-              </div>
-            </div>
-
-            {doc.description && (
-              <div className="p-4 bg-[#fbfbfc] rounded-xl border border-[#e9ebf0]">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-[#8a90a2] block mb-1">
-                  Deskripsi / Urgensi Dokumen
-                </span>
-                <p className="text-xs text-[#212634] leading-relaxed whitespace-pre-wrap">
-                  {doc.description}
-                </p>
-              </div>
-            )}
-
-            {/* Berkas Lampiran Terbaru Section */}
-            {currentVersionObj && (
-              <div className="border border-[#e9ebf0] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-[#f0effe] text-[#555ad5] flex items-center justify-center shrink-0">
-                    <FileText className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-[#212634] flex items-center gap-2">
-                      <span>{currentVersionObj.file_name}</span>
-                      <span className="px-1.5 py-0.2 bg-[#f0effe] text-[#555ad5] rounded text-[10px] font-mono">
-                        v{currentVersionObj.version_no}
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-[#717684] mt-0.5">
-                      {formatFileSize(currentVersionObj.file_size)} &middot;
-                      Diunggah oleh {currentVersionObj.uploaded_by_name}{" "}
-                      &middot; {formatDate(currentVersionObj.uploaded_at)}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={() => openPreview(currentVersionObj)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#555ad5] hover:bg-[#484ec7] text-white text-xs font-semibold shadow-xs transition cursor-pointer"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>Lihat PDF</span>
-                  </button>
-
-                  <a
-                    href={api.files.downloadUrl(doc.id, currentVersionObj.id)}
-                    download
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#e9ebf0] bg-white hover:bg-slate-50 text-[#212634] text-xs font-semibold transition cursor-pointer"
-                  >
-                    <Download className="w-3.5 h-3.5 text-[#717684]" />
-                    <span>Unduh</span>
-                  </a>
-
-                  {allowedActions.can_edit && (
-                    <button
-                      onClick={() => setIsUploadModalOpen(true)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#e9ebf0] bg-white hover:bg-slate-50 text-[#212634] text-xs font-semibold transition cursor-pointer"
-                    >
-                      <Upload className="w-3.5 h-3.5 text-[#717684]" />
-                      <span>Revisi berkas</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Card 2: Departemen Tujuan */}
-          <div className="bg-white rounded-2xl border border-[#e9ebf0] p-6 shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-bold text-[#212634]">
-                  Departemen tujuan
-                </h2>
-                <p className="text-xs text-[#717684] mt-0.5">
-                  Seluruh departemen berikut wajib menyetujui sesuai aturan Opsi
-                  A
-                </p>
-              </div>
-
-              {(allowedActions.can_add_dept ||
-                (doc.status === "draft" && allowedActions.can_edit)) && (
-                <button
-                  onClick={() => setIsAddDeptModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#f0effe] hover:bg-[#e4e2fd] text-[#555ad5] text-xs font-semibold transition cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Tambah departemen</span>
-                </button>
-              )}
-            </div>
-
-            <div className="overflow-x-auto -mx-6">
-              <table className="w-full text-left text-xs min-w-[550px]">
-                <thead>
-                  <tr className="border-b border-[#e9ebf0] text-[10px] font-bold uppercase tracking-wider text-[#8a90a2]">
-                    <th className="py-3 px-6">Departemen</th>
-                    <th className="py-3 px-4">Manajer</th>
-                    <th className="py-3 px-4">Status Keputusan</th>
-                    <th className="py-3 px-4">Waktu</th>
-                    {doc.status === "draft" && allowedActions.can_edit && (
-                      <th className="py-3 px-6 text-right">Aksi</th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#e9ebf0]">
-                  {departments.map((dept) => (
-                    <tr
-                      key={dept.department_id}
-                      className="hover:bg-[#fbfbfc] transition"
-                    >
-                      <td className="py-3.5 px-6">
-                        <div className="font-bold text-[#212634]">
-                          {dept.name}
-                        </div>
-                        <div className="text-[11px] font-mono text-[#8a90a2] mt-0.5">
-                          {dept.code}
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 text-[#717684]">
-                        {dept.manager_name || "Manajer Departemen"}
-                      </td>
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <DecisionBadge decision={dept.decision} />
-                      </td>
-                      <td className="py-3.5 px-4 text-[#717684] whitespace-nowrap">
-                        {dept.decided_at
-                          ? formatDateTime(dept.decided_at)
-                          : "-"}
-                      </td>
-                      {doc.status === "draft" && allowedActions.can_edit && (
-                        <td className="py-3.5 px-6 text-right">
-                          <button
-                            onClick={() =>
-                              handleRemoveDraftDept(dept.department_id)
-                            }
-                            className="p-1 rounded-lg text-slate-400 hover:text-rose-600 transition cursor-pointer"
-                            title="Hapus departemen dari draft"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Card 3: Thread Komentar & Respon */}
-          <div className="bg-white rounded-2xl border border-[#e9ebf0] p-6 shadow-xs space-y-4">
-            <div>
-              <h2 className="text-sm font-bold text-[#212634]">
-                Thread komentar &amp; tanggapan
-              </h2>
-              <p className="text-xs text-[#717684] mt-0.5">
-                Diskusi resmi, catatan revisi, dan tanggapan departemen terkait
-              </p>
-            </div>
-
-            {/* List of responses */}
-            <div className="space-y-3 pt-1">
-              {responses.length === 0 ? (
-                <div className="p-8 text-center text-[#717684] bg-[#fbfbfc] rounded-xl border border-[#e9ebf0]">
-                  <MessageSquare className="w-8 h-8 mx-auto mb-2 text-[#8a90a2] stroke-1" />
-                  <p className="text-xs font-semibold text-[#212634]">
-                    Belum ada tanggapan atau catatan
-                  </p>
-                  <p className="text-[11px] text-[#717684] mt-0.5">
-                    Komentar Checker dan respon manajer departemen akan muncul
-                    di sini.
-                  </p>
-                </div>
-              ) : (
-                responses.map((resp) => {
-                  const isRevision = resp.type === "revision_request";
-                  const isComment = resp.type === "comment";
-
-                  return (
-                    <div
-                      key={resp.id}
-                      className={`p-4 rounded-xl border transition ${
-                        isRevision
-                          ? "bg-amber-50/50 border-amber-200"
-                          : isComment
-                            ? "bg-[#f0effe]/40 border-[#555ad5]/20"
-                            : "bg-[#fbfbfc] border-[#e9ebf0]"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-[#f0effe] text-[#555ad5] font-bold text-[10px] flex items-center justify-center">
-                            {resp.author_name
-                              ? resp.author_name[0].toUpperCase()
-                              : "U"}
-                          </div>
-                          <span className="text-xs font-bold text-[#212634]">
-                            {resp.author_name}
-                          </span>
-                          {resp.department_name && (
-                            <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-medium">
-                              {resp.department_name}
-                            </span>
-                          )}
-                          {isRevision && (
-                            <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">
-                              Permintaan Revisi
-                            </span>
-                          )}
-                          {isComment && (
-                            <span className="px-1.5 py-0.5 rounded bg-[#f0effe] text-[#555ad5] text-[10px] font-semibold">
-                              Catatan Checker
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[11px] text-[#8a90a2]">
-                          {formatDateTime(resp.created_at)}
-                        </span>
-                      </div>
-                      <p className="text-xs text-[#212634] leading-relaxed pl-8 whitespace-pre-wrap">
-                        {resp.body}
-                      </p>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-
-            {/* Input Response Form if permitted */}
-            {allowedActions.can_respond && (
-              <form
-                onSubmit={handleSendResponse}
-                className="pt-2 border-t border-[#e9ebf0] space-y-3"
-              >
-                <label className="block text-xs font-semibold text-[#212634]">
-                  Tulis Tanggapan Resmi
-                </label>
-                <textarea
-                  rows={3}
-                  value={responseBody}
-                  onChange={(e) => setResponseBody(e.target.value)}
-                  placeholder="Ketik tanggapan atau catatan departemen Anda mengenai dokumen ini..."
-                  className="w-full px-3.5 py-2.5 bg-[#fbfbfc] border border-[#e9ebf0] rounded-xl text-xs text-[#212634] placeholder-[#8a90a2] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#555ad5]/20 focus:border-[#555ad5] transition resize-none"
-                />
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={actionLoading || !responseBody.trim()}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#555ad5] hover:bg-[#484ec7] text-white text-xs font-semibold shadow-xs transition cursor-pointer disabled:opacity-50"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>Kirim tanggapan</span>
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
+          <DocumentDiscussionCard
+            responses={responses}
+            allowedActions={allowedActions}
+            responseBody={responseBody}
+            setResponseBody={setResponseBody}
+            onSendResponse={handleSendResponse}
+            actionLoading={actionLoading}
+            formatDateTime={formatDateTime}
+          />
         </div>
 
         {/* Right Column (~32% on Desktop) */}
         <div className="lg:col-span-4 space-y-6">
-          {/* Card 1: Tindakan Dokumen */}
-          <div className="bg-white rounded-2xl border border-[#e9ebf0] p-6 shadow-xs space-y-4">
-            <div>
-              <h2 className="text-sm font-bold text-[#212634]">
-                Tindakan dokumen
-              </h2>
-              <p className="text-xs text-[#717684] mt-0.5">
-                Aksi yang dapat Anda lakukan saat ini
-              </p>
-            </div>
+          <DocumentActionsCard
+            doc={doc}
+            allowedActions={allowedActions}
+            actionLoading={actionLoading}
+            myDeptObj={myDeptObj}
+            targetDeptId={targetDeptId}
+            isChangingDeptDecision={isChangingDeptDecision}
+            setIsChangingDeptDecision={setIsChangingDeptDecision}
+            onSubmitToChecker={handleSubmitToChecker}
+            onOpenEditModal={() => setIsEditModalOpen(true)}
+            onOpenCancelModal={() => setIsCancelModalOpen(true)}
+            onOpenCheckerApproveModal={() => setIsCheckerApproveModalOpen(true)}
+            onOpenRequestRevisionModal={() =>
+              setIsRequestRevisionModalOpen(true)
+            }
+            onDeptApprove={handleDeptApprove}
+            onOpenDeptRejectModal={(deptId) => {
+              setRejectDeptId(deptId);
+              setIsDeptRejectModalOpen(true);
+            }}
+            onDeleteDraft={handleDeleteDraft}
+          />
 
-            <div className="space-y-2.5 pt-1">
-              {/* Applicant Actions on Draft/Applicant */}
-              {allowedActions.can_submit && (
-                <button
-                  onClick={handleSubmitToChecker}
-                  disabled={actionLoading}
-                  className="w-full py-2.5 px-4 rounded-xl bg-[#555ad5] hover:bg-[#484ec7] text-white text-xs font-semibold shadow-xs transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Ajukan ke Checker</span>
-                </button>
-              )}
-
-              {allowedActions.can_edit && (
-                <button
-                  onClick={() => setIsEditModalOpen(true)}
-                  disabled={actionLoading}
-                  className="w-full py-2.5 px-4 rounded-xl border border-[#e9ebf0] bg-white hover:bg-slate-50 text-[#212634] text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <Edit className="w-3.5 h-3.5 text-[#717684]" />
-                  <span>Edit informasi dokumen</span>
-                </button>
-              )}
-
-              {/* Applicant Action on Pending: Cancel */}
-              {allowedActions.can_cancel && (
-                <button
-                  onClick={() => setIsCancelModalOpen(true)}
-                  disabled={actionLoading}
-                  className="w-full py-2.5 px-4 rounded-xl border border-rose-200 bg-rose-50/50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <Ban className="w-3.5 h-3.5" />
-                  <span>Batalkan dokumen</span>
-                </button>
-              )}
-
-              {/* Checker Actions on Draft/Checker */}
-              {allowedActions.can_checker_decide && (
-                <>
-                  <button
-                    onClick={() => setIsCheckerApproveModalOpen(true)}
-                    disabled={actionLoading}
-                    className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    <CheckCircle className="w-3.5 h-3.5" />
-                    <span>Setujui &amp; teruskan</span>
-                  </button>
-
-                  <button
-                    onClick={() => setIsRequestRevisionModalOpen(true)}
-                    disabled={actionLoading}
-                    className="w-full py-2.5 px-4 rounded-xl bg-[#fef3c7] hover:bg-[#fde68a] text-[#b45309] border border-[#fcd34d] text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    <AlertCircle className="w-3.5 h-3.5" />
-                    <span>Kembalikan untuk revisi</span>
-                  </button>
-                </>
-              )}
-
-              {/* Dept Manager Actions on Pending */}
-              {allowedActions.can_dept_decide && targetDeptId && (
-                <>
-                  {/* If decision already made and not in editing mode, display status card & "Ubah Keputusan" button */}
-                  {myDeptObj?.decision && !isChangingDeptDecision ? (
-                    <div className="space-y-2.5">
-                      <div
-                        className={`p-3.5 rounded-xl border flex items-start gap-2.5 ${
-                          myDeptObj.decision === "approved"
-                            ? "bg-emerald-50/80 border-emerald-200 text-emerald-800"
-                            : "bg-rose-50/80 border-rose-200 text-rose-800"
-                        }`}
-                      >
-                        {myDeptObj.decision === "approved" ? (
-                          <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                        ) : (
-                          <X className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <div className="text-xs font-bold leading-tight">
-                            {myDeptObj.decision === "approved"
-                              ? "Keputusan: Telah Disetujui"
-                              : "Keputusan: Telah Ditolak"}
-                          </div>
-                          <p className="text-[11px] opacity-80 mt-0.5 leading-relaxed">
-                            {myDeptObj.decision === "approved"
-                              ? "Departemen Anda telah menyetujui pengajuan dokumen ini."
-                              : "Departemen Anda telah menolak pengajuan dokumen ini."}
-                          </p>
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => setIsChangingDeptDecision(true)}
-                        disabled={actionLoading}
-                        className="w-full py-2 px-3 rounded-xl border border-[#e9ebf0] bg-white hover:bg-slate-50 text-xs font-semibold text-[#4b5563] hover:text-[#212634] transition cursor-pointer flex items-center justify-center gap-2"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5 text-[#717684]" />
-                        <span>Ubah Keputusan</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {/* If not decided yet, or currently rejected: show Setujui button */}
-                      {(!myDeptObj?.decision ||
-                        myDeptObj.decision === "rejected") && (
-                        <button
-                          onClick={() => handleDeptApprove(targetDeptId)}
-                          disabled={actionLoading}
-                          className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-                        >
-                          <CheckCircle className="w-3.5 h-3.5" />
-                          <span>
-                            {myDeptObj?.decision === "rejected"
-                              ? "Ubah keputusan: Setujui Dokumen"
-                              : "Setujui dokumen"}
-                          </span>
-                        </button>
-                      )}
-
-                      {/* If not decided yet, or currently approved: show Tolak button */}
-                      {(!myDeptObj?.decision ||
-                        myDeptObj.decision === "approved") && (
-                        <button
-                          onClick={() => {
-                            setRejectDeptId(targetDeptId);
-                            setIsDeptRejectModalOpen(true);
-                          }}
-                          disabled={actionLoading}
-                          className="w-full py-2.5 px-4 rounded-xl border border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                          <span>
-                            {myDeptObj?.decision === "approved"
-                              ? "Ubah keputusan: Tolak Dokumen"
-                              : "Tolak dokumen"}
-                          </span>
-                        </button>
-                      )}
-
-                      {myDeptObj?.decision && (
-                        <button
-                          type="button"
-                          onClick={() => setIsChangingDeptDecision(false)}
-                          className="w-full py-1.5 text-center text-xs text-[#717684] hover:text-[#212634] transition cursor-pointer"
-                        >
-                          Batal ubah keputusan
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* Delete Draft Action */}
-              {allowedActions.can_delete && (
-                <button
-                  onClick={handleDeleteDraft}
-                  disabled={actionLoading}
-                  className="w-full py-2 px-4 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Hapus draft</span>
-                </button>
-              )}
-
-              {/* Terminal Locked Card if Approved / Rejected / Canceled */}
-              {(doc.status === "approved" ||
-                doc.status === "rejected" ||
-                doc.status === "canceled") && (
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center space-y-1.5">
-                  <Lock className="w-5 h-5 mx-auto text-[#8a90a2]" />
-                  <p className="text-xs font-bold text-[#212634]">
-                    Terkunci &middot; Final
-                  </p>
-                  <p className="text-[11px] text-[#717684] leading-relaxed">
-                    Dokumen ini telah mencapai status akhir. Alur persetujuan
-                    telah selesai dan tidak dapat diubah kembali.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Card 2: Riwayat & Jejak Audit */}
-          <div className="bg-white rounded-2xl border border-[#e9ebf0] p-6 shadow-xs space-y-4">
-            <div>
-              <h2 className="text-sm font-bold text-[#212634]">
-                Riwayat &amp; jejak audit
-              </h2>
-              <p className="text-xs text-[#717684] mt-0.5">
-                Catatan kronologis mutasi sistem
-              </p>
-            </div>
-
-            <div className="relative pl-6 space-y-5 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#e9ebf0]">
-              {logs.map((lg) => (
-                <div key={lg.id} className="relative group">
-                  <div className="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-[#555ad5] border-2 border-white ring-2 ring-[#f0effe]" />
-                  <div className="text-xs font-bold text-[#212634]">
-                    {lg.action}
-                  </div>
-                  <div className="text-[11px] text-[#717684] mt-0.5">
-                    Oleh{" "}
-                    <strong className="text-[#212634]">{lg.actor_name}</strong>
-                  </div>
-                  {lg.note && (
-                    <div className="mt-1 p-2 bg-[#fbfbfc] border border-[#e9ebf0] rounded-lg text-[11px] text-[#212634] italic">
-                      &ldquo;{lg.note}&rdquo;
-                    </div>
-                  )}
-                  <div className="text-[10px] text-[#8a90a2] mt-0.5">
-                    {formatDateTime(lg.created_at)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Card 3: Hak Akses Sesuai Tahap */}
-          <div className="bg-white rounded-2xl border border-[#e9ebf0] p-6 shadow-xs space-y-3">
-            <div className="flex items-center gap-2">
-              <HelpCircle className="w-4 h-4 text-[#555ad5]" />
-              <h2 className="text-sm font-bold text-[#212634]">
-                Hak akses sesuai tahap
-              </h2>
-            </div>
-            <p className="text-xs text-[#717684] leading-relaxed">
-              Otorisasi DigiPost berbasis relasi organisasi nyata:
-            </p>
-            <ul className="text-xs text-[#717684] space-y-2 list-disc list-inside">
-              <li>
-                <strong className="text-[#212634]">Applicant:</strong> Mengedit
-                dan mengajukan saat draft; membatalkan saat pending.
-              </li>
-              <li>
-                <strong className="text-[#212634]">Checker:</strong> Atasan
-                langsung yang menyetujui atau meminta revisi tahap 1.
-              </li>
-              <li>
-                <strong className="text-[#212634]">Dept Manager:</strong>{" "}
-                Memberikan keputusan multi-dept sesuai aturan agregasi Opsi A.
-              </li>
-            </ul>
-          </div>
+          <DocumentTimelineCard logs={logs} formatDateTime={formatDateTime} />
         </div>
       </div>
 

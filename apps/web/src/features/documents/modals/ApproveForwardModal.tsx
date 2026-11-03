@@ -27,8 +27,8 @@ export const ApproveForwardModal: React.FC<ApproveForwardModalProps> = ({
         <p className="text-xs text-[#717684] leading-relaxed">
           Dokumen telah memenuhi kriteria pemeriksaan atasan dan akan diteruskan
           ke seluruh departemen tujuan (
-          <strong>{departmentNames.join(", ")}</strong>) untuk proses persetujuan
-          multi-departemen (Opsi A).
+          <strong>{departmentNames.join(", ")}</strong>) untuk proses
+          persetujuan multi-departemen (Opsi A).
         </p>
 
         <div className="p-4 bg-[#f3f4fd] border border-[#e0e2fa] rounded-xl text-xs text-[#3a3e84]">
@@ -57,4 +57,3 @@ export const ApproveForwardModal: React.FC<ApproveForwardModalProps> = ({
     </Modal>
   );
 };
-

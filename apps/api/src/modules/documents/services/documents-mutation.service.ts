@@ -4,6 +4,55 @@ import crypto from "crypto";
 import { withTransaction } from "../../../db";
 import { config } from "../../../config";
 import { AuthUser } from "../../../middleware/auth";
+import {
+  NotFoundError,
+  ForbiddenError,
+  BadRequestError,
+  VersionConflictError,
+} from "../../../middleware/errors";
+
+export async function computeFileChecksum(
+  file: Express.Multer.File,
+): Promise<string> {
+  if (file.buffer) {
+    return crypto.createHash("sha256").update(file.buffer).digest("hex");
+  }
+  if (file.path && fs.existsSync(file.path)) {
+    return new Promise<string>((resolve, reject) => {
+      const hash = crypto.createHash("sha256");
+      const stream = fs.createReadStream(file.path);
+      stream.on("data", (chunk) => hash.update(chunk));
+      stream.on("end", () => resolve(hash.digest("hex")));
+      stream.on("error", reject);
+    });
+  }
+  throw new Error("Konten berkas tidak tersedia");
+}
+
+export async function persistUploadedFile(
+  file: Express.Multer.File,
+  storageFilePath: string,
+): Promise<void> {
+  const dir = path.dirname(storageFilePath);
+  if (!fs.existsSync(dir)) {
+    await fs.promises.mkdir(dir, { recursive: true });
+  }
+
+  if (file.path && fs.existsSync(file.path)) {
+    try {
+      await fs.promises.rename(file.path, storageFilePath);
+    } catch {
+      await fs.promises.copyFile(file.path, storageFilePath);
+      try {
+        await fs.promises.unlink(file.path);
+      } catch {
+        // ignore unlink error
+      }
+    }
+  } else if (file.buffer) {
+    await fs.promises.writeFile(storageFilePath, file.buffer);
+  }
+}
 
 export async function createDocument(
   user: AuthUser,
@@ -13,11 +62,9 @@ export async function createDocument(
   file: Express.Multer.File,
 ) {
   if (user.role !== "assistant") {
-    const error = new Error(
+    throw new ForbiddenError(
       "Akses ditolak. Fitur membuat dan mengajukan dokumen hanya tersedia untuk peran Assistant.",
     );
-    (error as any).status = 403;
-    throw error;
   }
   let savedFilePath: string | null = null;
   try {
@@ -35,18 +82,12 @@ export async function createDocument(
       const docId = Number(docResult.rows[0].id);
 
       // 2. Save version file
-      const checksum = crypto
-        .createHash("sha256")
-        .update(file.buffer)
-        .digest("hex");
+      const checksum = await computeFileChecksum(file);
       const ext = path.extname(file.originalname) || ".bin";
       const storageFileName = `${crypto.randomUUID()}${ext}`;
       const storageFilePath = path.join(config.uploadDir, storageFileName);
 
-      if (!fs.existsSync(config.uploadDir)) {
-        fs.mkdirSync(config.uploadDir, { recursive: true });
-      }
-      fs.writeFileSync(storageFilePath, file.buffer);
+      await persistUploadedFile(file, storageFilePath);
       savedFilePath = storageFilePath;
 
       await client.query(
@@ -59,7 +100,7 @@ export async function createDocument(
         [
           docId,
           file.originalname,
-          storageFilePath,
+          storageFileName,
           file.mimetype,
           file.size,
           checksum,
@@ -94,14 +135,21 @@ export async function createDocument(
       };
     });
   } catch (err) {
-    if (savedFilePath && fs.existsSync(savedFilePath)) {
+    if (savedFilePath) {
       try {
-        fs.unlinkSync(savedFilePath);
+        await fs.promises.unlink(savedFilePath);
       } catch (unlinkErr) {
         console.error(
           "[Cleanup Error] Failed to delete orphaned file:",
           unlinkErr,
         );
+      }
+    }
+    if (file.path) {
+      try {
+        await fs.promises.unlink(file.path);
+      } catch {
+        // ignore
       }
     }
     throw err;
@@ -116,11 +164,9 @@ export async function updateDocument(
   expectedVersion?: number,
 ) {
   if (user.role !== "assistant") {
-    const error = new Error(
+    throw new ForbiddenError(
       "Akses ditolak. Fitur ini hanya tersedia untuk peran Assistant.",
     );
-    (error as any).status = 403;
-    throw error;
   }
   return await withTransaction(async (client) => {
     const docCheck = await client.query(
@@ -129,34 +175,27 @@ export async function updateDocument(
     );
 
     if (docCheck.rowCount === 0) {
-      const error = new Error("Dokumen tidak ditemukan.");
-      (error as any).status = 404;
-      throw error;
+      throw new NotFoundError("Dokumen tidak ditemukan.");
     }
 
     const doc = docCheck.rows[0];
     if (Number(doc.applicant_id) !== user.id) {
-      const error = new Error("Hanya pembuat dokumen yang dapat mengedit.");
-      (error as any).status = 403;
-      throw error;
+      throw new ForbiddenError("Hanya pembuat dokumen yang dapat mengedit.");
     }
 
     if (doc.status !== "draft" || doc.review_stage !== "applicant") {
-      const error = new Error(
+      throw new BadRequestError(
         "Dokumen hanya dapat diedit pada tahap draft-applicant.",
       );
-      (error as any).status = 400;
-      throw error;
     }
 
     if (
       expectedVersion !== undefined &&
       Number(doc.version) !== expectedVersion
     ) {
-      const error = new Error("Dokumen telah dimodifikasi oleh aksi lain.");
-      (error as any).code = "VERSION_CONFLICT";
-      (error as any).status = 409;
-      throw error;
+      throw new VersionConflictError(
+        "Dokumen telah dimodifikasi oleh aksi lain.",
+      );
     }
 
     await client.query(
@@ -179,11 +218,9 @@ export async function addDepartmentDraft(
   expectedVersion?: number,
 ) {
   if (user.role !== "assistant") {
-    const error = new Error(
+    throw new ForbiddenError(
       "Akses ditolak. Fitur ini hanya tersedia untuk peran Assistant.",
     );
-    (error as any).status = 403;
-    throw error;
   }
   return await withTransaction(async (client) => {
     const docCheck = await client.query(
@@ -192,36 +229,29 @@ export async function addDepartmentDraft(
     );
 
     if (docCheck.rowCount === 0) {
-      const error = new Error("Dokumen tidak ditemukan.");
-      (error as any).status = 404;
-      throw error;
+      throw new NotFoundError("Dokumen tidak ditemukan.");
     }
 
     const doc = docCheck.rows[0];
     if (Number(doc.applicant_id) !== user.id) {
-      const error = new Error(
+      throw new ForbiddenError(
         "Hanya pembuat dokumen yang dapat menambah departemen.",
       );
-      (error as any).status = 403;
-      throw error;
     }
 
     if (doc.status !== "draft" || doc.review_stage !== "applicant") {
-      const error = new Error(
+      throw new BadRequestError(
         "Penambahan departemen oleh Applicant hanya boleh saat draft-applicant.",
       );
-      (error as any).status = 400;
-      throw error;
     }
 
     if (
       expectedVersion !== undefined &&
       Number(doc.version) !== expectedVersion
     ) {
-      const error = new Error("Dokumen telah dimodifikasi oleh aksi lain.");
-      (error as any).code = "VERSION_CONFLICT";
-      (error as any).status = 409;
-      throw error;
+      throw new VersionConflictError(
+        "Dokumen telah dimodifikasi oleh aksi lain.",
+      );
     }
 
     await client.query(
@@ -251,11 +281,9 @@ export async function removeDepartmentDraft(
   expectedVersion?: number,
 ) {
   if (user.role !== "assistant") {
-    const error = new Error(
+    throw new ForbiddenError(
       "Akses ditolak. Fitur ini hanya tersedia untuk peran Assistant.",
     );
-    (error as any).status = 403;
-    throw error;
   }
   return await withTransaction(async (client) => {
     const docCheck = await client.query(
@@ -264,36 +292,29 @@ export async function removeDepartmentDraft(
     );
 
     if (docCheck.rowCount === 0) {
-      const error = new Error("Dokumen tidak ditemukan.");
-      (error as any).status = 404;
-      throw error;
+      throw new NotFoundError("Dokumen tidak ditemukan.");
     }
 
     const doc = docCheck.rows[0];
     if (Number(doc.applicant_id) !== user.id) {
-      const error = new Error(
+      throw new ForbiddenError(
         "Hanya pembuat dokumen yang dapat menghapus departemen.",
       );
-      (error as any).status = 403;
-      throw error;
     }
 
     if (doc.status !== "draft" || doc.review_stage !== "applicant") {
-      const error = new Error(
+      throw new BadRequestError(
         "Penghapusan departemen hanya boleh saat draft-applicant.",
       );
-      (error as any).status = 400;
-      throw error;
     }
 
     if (
       expectedVersion !== undefined &&
       Number(doc.version) !== expectedVersion
     ) {
-      const error = new Error("Dokumen telah dimodifikasi oleh aksi lain.");
-      (error as any).code = "VERSION_CONFLICT";
-      (error as any).status = 409;
-      throw error;
+      throw new VersionConflictError(
+        "Dokumen telah dimodifikasi oleh aksi lain.",
+      );
     }
 
     await client.query(
@@ -322,11 +343,9 @@ export async function uploadNewVersion(
   expectedVersion?: number,
 ) {
   if (user.role !== "assistant") {
-    const error = new Error(
+    throw new ForbiddenError(
       "Akses ditolak. Fitur ini hanya tersedia untuk peran Assistant.",
     );
-    (error as any).status = 403;
-    throw error;
   }
   let savedFilePath: string | null = null;
   try {
@@ -337,36 +356,29 @@ export async function uploadNewVersion(
       );
 
       if (docCheck.rowCount === 0) {
-        const error = new Error("Dokumen tidak ditemukan.");
-        (error as any).status = 404;
-        throw error;
+        throw new NotFoundError("Dokumen tidak ditemukan.");
       }
 
       const doc = docCheck.rows[0];
       if (Number(doc.applicant_id) !== user.id) {
-        const error = new Error(
+        throw new ForbiddenError(
           "Hanya pembuat dokumen yang dapat mengunggah versi baru.",
         );
-        (error as any).status = 403;
-        throw error;
       }
 
       if (doc.status !== "draft" || doc.review_stage !== "applicant") {
-        const error = new Error(
+        throw new BadRequestError(
           "Unggah file versi baru hanya boleh saat draft-applicant.",
         );
-        (error as any).status = 400;
-        throw error;
       }
 
       if (
         expectedVersion !== undefined &&
         Number(doc.version) !== expectedVersion
       ) {
-        const error = new Error("Dokumen telah dimodifikasi oleh aksi lain.");
-        (error as any).code = "VERSION_CONFLICT";
-        (error as any).status = 409;
-        throw error;
+        throw new VersionConflictError(
+          "Dokumen telah dimodifikasi oleh aksi lain.",
+        );
       }
 
       // Get max version_no
@@ -378,18 +390,12 @@ export async function uploadNewVersion(
       );
       const nextVersionNo = parseInt(maxVerRes.rows[0].max_ver, 10) + 1;
 
-      const checksum = crypto
-        .createHash("sha256")
-        .update(file.buffer)
-        .digest("hex");
+      const checksum = await computeFileChecksum(file);
       const ext = path.extname(file.originalname) || ".bin";
       const storageFileName = `${crypto.randomUUID()}${ext}`;
       const storageFilePath = path.join(config.uploadDir, storageFileName);
 
-      if (!fs.existsSync(config.uploadDir)) {
-        fs.mkdirSync(config.uploadDir, { recursive: true });
-      }
-      fs.writeFileSync(storageFilePath, file.buffer);
+      await persistUploadedFile(file, storageFilePath);
       savedFilePath = storageFilePath;
 
       await client.query(
@@ -403,7 +409,7 @@ export async function uploadNewVersion(
           documentId,
           nextVersionNo,
           file.originalname,
-          storageFilePath,
+          storageFileName,
           file.mimetype,
           file.size,
           checksum,
@@ -421,14 +427,21 @@ export async function uploadNewVersion(
       return { message: `Versi ${nextVersionNo} berhasil diunggah` };
     });
   } catch (err) {
-    if (savedFilePath && fs.existsSync(savedFilePath)) {
+    if (savedFilePath) {
       try {
-        fs.unlinkSync(savedFilePath);
+        await fs.promises.unlink(savedFilePath);
       } catch (unlinkErr) {
         console.error(
           "[Cleanup Error] Failed to delete orphaned file:",
           unlinkErr,
         );
+      }
+    }
+    if (file.path) {
+      try {
+        await fs.promises.unlink(file.path);
+      } catch {
+        // ignore
       }
     }
     throw err;
@@ -441,36 +454,29 @@ export async function submitDocument(
   expectedVersion?: number,
 ) {
   if (user.role !== "assistant") {
-    const error = new Error(
+    throw new ForbiddenError(
       "Akses ditolak. Fitur ini hanya tersedia untuk peran Assistant.",
     );
-    (error as any).status = 403;
-    throw error;
   }
   return await withTransaction(async (client) => {
-    const docCheck = await client.query(
-      `SELECT * FROM documents WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`,
-      [documentId],
-    );
+    if (expectedVersion !== undefined) {
+      const docCheck = await client.query(
+        `SELECT version FROM documents WHERE id = $1 AND deleted_at IS NULL`,
+        [documentId],
+      );
 
-    if (docCheck.rowCount === 0) {
-      const error = new Error("Dokumen tidak ditemukan.");
-      (error as any).status = 404;
-      throw error;
+      if (docCheck.rowCount === 0) {
+        throw new NotFoundError("Dokumen tidak ditemukan.");
+      }
+
+      if (Number(docCheck.rows[0].version) !== expectedVersion) {
+        throw new VersionConflictError(
+          "Dokumen telah dimodifikasi oleh aksi lain.",
+        );
+      }
     }
 
-    const doc = docCheck.rows[0];
-    if (
-      expectedVersion !== undefined &&
-      Number(doc.version) !== expectedVersion
-    ) {
-      const error = new Error("Dokumen telah dimodifikasi oleh aksi lain.");
-      (error as any).code = "VERSION_CONFLICT";
-      (error as any).status = 409;
-      throw error;
-    }
-
-    // Call stored procedure
+    // Call stored procedure (stored procedure handles row locking & all validations atomically)
     await client.query(`SELECT sp_submit_document($1, $2)`, [
       documentId,
       user.id,
@@ -487,33 +493,26 @@ export async function deleteDocument(
   expectedVersion?: number,
 ) {
   if (user.role !== "assistant") {
-    const error = new Error(
+    throw new ForbiddenError(
       "Akses ditolak. Fitur ini hanya tersedia untuk peran Assistant.",
     );
-    (error as any).status = 403;
-    throw error;
   }
   return await withTransaction(async (client) => {
-    const docCheck = await client.query(
-      `SELECT * FROM documents WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`,
-      [documentId],
-    );
+    if (expectedVersion !== undefined) {
+      const docCheck = await client.query(
+        `SELECT version FROM documents WHERE id = $1 AND deleted_at IS NULL`,
+        [documentId],
+      );
 
-    if (docCheck.rowCount === 0) {
-      const error = new Error("Dokumen tidak ditemukan.");
-      (error as any).status = 404;
-      throw error;
-    }
+      if (docCheck.rowCount === 0) {
+        throw new NotFoundError("Dokumen tidak ditemukan.");
+      }
 
-    const doc = docCheck.rows[0];
-    if (
-      expectedVersion !== undefined &&
-      Number(doc.version) !== expectedVersion
-    ) {
-      const error = new Error("Dokumen telah dimodifikasi oleh aksi lain.");
-      (error as any).code = "VERSION_CONFLICT";
-      (error as any).status = 409;
-      throw error;
+      if (Number(docCheck.rows[0].version) !== expectedVersion) {
+        throw new VersionConflictError(
+          "Dokumen telah dimodifikasi oleh aksi lain.",
+        );
+      }
     }
 
     await client.query(`SELECT sp_delete_document($1, $2)`, [
@@ -530,33 +529,26 @@ export async function cancelDocument(
   expectedVersion?: number,
 ) {
   if (user.role !== "assistant") {
-    const error = new Error(
+    throw new ForbiddenError(
       "Akses ditolak. Fitur ini hanya tersedia untuk peran Assistant.",
     );
-    (error as any).status = 403;
-    throw error;
   }
   return await withTransaction(async (client) => {
-    const docCheck = await client.query(
-      `SELECT * FROM documents WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`,
-      [documentId],
-    );
+    if (expectedVersion !== undefined) {
+      const docCheck = await client.query(
+        `SELECT version FROM documents WHERE id = $1 AND deleted_at IS NULL`,
+        [documentId],
+      );
 
-    if (docCheck.rowCount === 0) {
-      const error = new Error("Dokumen tidak ditemukan.");
-      (error as any).status = 404;
-      throw error;
-    }
+      if (docCheck.rowCount === 0) {
+        throw new NotFoundError("Dokumen tidak ditemukan.");
+      }
 
-    const doc = docCheck.rows[0];
-    if (
-      expectedVersion !== undefined &&
-      Number(doc.version) !== expectedVersion
-    ) {
-      const error = new Error("Dokumen telah dimodifikasi oleh aksi lain.");
-      (error as any).code = "VERSION_CONFLICT";
-      (error as any).status = 409;
-      throw error;
+      if (Number(docCheck.rows[0].version) !== expectedVersion) {
+        throw new VersionConflictError(
+          "Dokumen telah dimodifikasi oleh aksi lain.",
+        );
+      }
     }
 
     await client.query(`SELECT sp_cancel_document($1, $2)`, [

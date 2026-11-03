@@ -105,11 +105,14 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({
     });
   }, []);
 
-  const handleConfirmAction = (result: boolean) => {
-    if (confirmState) {
-      confirmState.resolve(result);
-    }
-  };
+  const handleConfirmAction = useCallback(
+    (result: boolean) => {
+      if (confirmState) {
+        confirmState.resolve(result);
+      }
+    },
+    [confirmState],
+  );
 
   // Handle ESC key for Confirm Modal
   useEffect(() => {
@@ -122,7 +125,7 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [confirmState]);
+  }, [confirmState, handleConfirmAction]);
 
   // Focus trap for Confirm Modal
   const confirmCardRef = useRef<HTMLDivElement>(null);
@@ -152,7 +155,8 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({
           const typeConfig = {
             success: {
               borderClass: "border-emerald-200 bg-white",
-              iconBg: "bg-emerald-50 text-emerald-600 border border-emerald-100",
+              iconBg:
+                "bg-emerald-50 text-emerald-600 border border-emerald-100",
               Icon: CheckCircle2,
             },
             error: {
@@ -303,4 +307,3 @@ export function useToast() {
 export function useConfirm() {
   return useFeedback().confirm;
 }
-

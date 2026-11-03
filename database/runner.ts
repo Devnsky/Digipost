@@ -129,7 +129,8 @@ export async function runSeed(pool: Pool, options?: { force?: boolean }) {
 
     // Check if data already exists to prevent accidental data loss
     const isTest = process.env.NODE_ENV === "test";
-    const force = options?.force ?? (process.argv.includes("--force") || isTest);
+    const force =
+      options?.force ?? (process.argv.includes("--force") || isTest);
 
     const checkTable = await client.query(`
       SELECT 1 FROM information_schema.tables WHERE table_name = 'users'
